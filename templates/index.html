@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="/static/css/custom.css" rel="stylesheet">
+    <style>
+        /* 米黄色主题自定义样式 */
+        :root {
+            --bg-primary: #fefdf6;
+            --bg-secondary: #f7f5e6;
+            --accent: #d4a574;
+            --accent-light: #e6c79a;
+            --text-primary: #3a3a3a;
+            --text-secondary: #666666;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .sidebar-custom {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--accent-light) 100%);
+            border-right: 2px solid var(--accent);
+        }
+        
+        .card-custom {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--accent);
+        }
+        
+        .btn-custom {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        .btn-custom:hover {
+            background-color: var(--accent-light);
+        }
+        
+        .nav-item:hover {
+            background-color: var(--accent-light);
+            border-radius: 0.5rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-running {
+            background-color: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+        
+        .status-stopped {
+            background-color: #ef4444;
+        }
+        
+        .logo-area {
+            background: linear-gradient(45deg, var(--accent), var(--accent-light));
+            color: white;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen">
+        <!-- 侧边栏 (区域1-5) -->
+        <div class="w-80 sidebar-custom p-6">
+            <!-- Logo区域 (区域1) -->
+            <div class="logo-area text-center">
+                <h1 class="text-2xl font-bold">MoFox-UI</h1>
+                <p class="text-sm opacity-90">Bot 管理控制台</p>
+            </div>
+            
+            <!-- 导航菜单 -->
+            <div class="menu">
+                <!-- Bot情况监控界面 (区域2) -->
+                <div class="nav-item p-3 cursor-pointer" onclick="showSection('monitoring')">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span class="font-medium">Bot 状态监控</span>
+                    </div>
+                </div>
+                
+                <!-- 配置管理界面 (区域3) -->
+                <div class="nav-item p-3 cursor-pointer" onclick="showSection('config')">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="font-medium">配置管理</span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1 ml-8">功能开发中...</div>
+                </div>
+                
+                <!-- 插件管理界面 (区域4) -->
+                <div class="nav-item p-3 cursor-pointer" onclick="showSection('plugins')">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2M9 3h2a2 2 0 012 2v4a2 2 0 002 2 2 2 0 012-2V7a2 2 0 012-2h2"></path>
+                        </svg>
+                        <span class="font-medium">插件管理</span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1 ml-8">功能开发中...</div>
+                </div>
+                
+                <!-- Live2D模型界面 (区域5) -->
+                <div class="nav-item p-3 cursor-pointer" onclick="showSection('live2d')">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="font-medium">Live2D 模型</span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1 ml-8">功能开发中...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区域 (区域6和7) -->
+        <div class="flex-1 p-6 flex flex-col">
+            <!-- Bot状态监控页面 -->
+            <div id="monitoring-section" class="section active flex flex-col flex-1">
+                <!-- 区域6: 服务状态控制 -->
+                <div class="card-custom p-4 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold">服务状态控制</h2>
+                        <button class="btn btn-sm btn-ghost" onclick="toggleServiceCards()">
+                            <svg id="collapse-icon" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="service-cards" class="grid grid-cols-1 md:grid-cols-3 gap-3 transition-all duration-300">
+                        <!-- Bot服务 -->
+                        <div class="card bg-base-100 shadow-md">
+                            <div class="card-body p-4">
+                                <h3 class="card-title text-base">
+                                    <span class="status-indicator" id="bot-status" data-status="stopped"></span>
+                                    MoFox-Bot
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-2">
+                                    <span class="status-text" id="bot-status-text">未运行</span>
+                                </p>
+                                <div class="card-actions justify-end">
+                                    <button class="btn btn-custom btn-xs" onclick="toggleService('bot')">
+                                        <span id="bot-action">启动</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Adapter服务 -->
+                        <div class="card bg-base-100 shadow-md">
+                            <div class="card-body p-4">
+                                <h3 class="card-title text-base">
+                                    <span class="status-indicator" id="adapter-status" data-status="stopped"></span>
+                                    Adapter
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-2">
+                                    <span class="status-text" id="adapter-status-text">未运行</span>
+                                </p>
+                                <div class="card-actions justify-end">
+                                    <button class="btn btn-custom btn-xs" onclick="toggleService('adapter')">
+                                        <span id="adapter-action">启动</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Matcha-Adapter服务 -->
+                        <div class="card bg-base-100 shadow-md">
+                            <div class="card-body p-4">
+                                <h3 class="card-title text-base">
+                                    <span class="status-indicator" id="matcha-status" data-status="stopped"></span>
+                                    Matcha-Adapter
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-2">
+                                    <span class="status-text" id="matcha-status-text">未运行</span>
+                                </p>
+                                <div class="card-actions justify-end">
+                                    <button class="btn btn-custom btn-xs" onclick="toggleService('matcha')">
+                                        <span id="matcha-action">启动</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 区域7: 状态监控和日志 -->
+                <div class="card-custom p-6 flex flex-col flex-1" id="log-panel">
+                    <h2 class="text-xl font-bold mb-4">日志输出</h2>
+                    
+                    <!-- 日志选项卡 -->
+                    <div class="tabs tabs-bordered">
+                        <a class="tab tab-active" onclick="showLogs('bot')">Bot 日志</a>
+                        <a class="tab" onclick="showLogs('adapter')">Adapter 日志</a>
+                        <a class="tab" onclick="showLogs('matcha')">Matcha 日志</a>
+                    </div>
+                    
+                    <!-- 日志内容 -->
+                    <div class="mt-4 flex flex-col flex-1">
+                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-y-auto font-mono text-sm flex-1" id="log-container" style="min-height: 400px;">
+                            <div class="log-line">[2025-08-29 15:35:26] INFO - MoFox-UI 管理界面已启动</div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <button class="btn btn-sm btn-custom" onclick="showSection('statistics')">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                统计面板
+                            </button>
+                            <button class="btn btn-sm btn-outline" onclick="refreshLogs()">刷新</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 配置管理页面 -->
+            <div id="config-section" class="section hidden">
+                <div class="card-custom p-6">
+                    <h2 class="text-xl font-bold mb-4">配置管理</h2>
+                    <div class="text-center py-20">
+                        <div class="text-6xl mb-4">🚧</div>
+                        <h3 class="text-2xl font-bold mb-2">功能开发中</h3>
+                        <p class="text-gray-600">配置管理功能正在开发中，敬请期待...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 插件管理页面 -->
+            <div id="plugins-section" class="section hidden">
+                <div class="card-custom p-6">
+                    <h2 class="text-xl font-bold mb-4">插件管理</h2>
+                    <div class="text-center py-20">
+                        <div class="text-6xl mb-4">🔌</div>
+                        <h3 class="text-2xl font-bold mb-2">功能开发中</h3>
+                        <p class="text-gray-600">插件管理功能正在开发中，敬请期待...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Live2D模型页面 -->
+            <div id="live2d-section" class="section hidden">
+                <div class="card-custom p-6">
+                    <h2 class="text-xl font-bold mb-4">Live2D 模型</h2>
+                    <div class="text-center py-20">
+                        <div class="text-6xl mb-4">🎭</div>
+                        <h3 class="text-2xl font-bold mb-2">功能开发中</h3>
+                        <p class="text-gray-600">Live2D 模型功能正在开发中，敬请期待...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 统计监控页面 -->
+            <div id="statistics-section" class="section hidden">
+                <div class="card-custom p-6 h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">MaiBot 运行统计监控</h2>
+                        <button class="btn btn-sm btn-outline" onclick="refreshStatistics()">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            刷新统计
+                        </button>
+                    </div>
+                    <div class="divider mt-0"></div>
+                    
+                    <!-- 统计内容容器 -->
+                    <div id="statistics-content" class="h-full overflow-y-auto">
+                        <div class="flex justify-center items-center h-full">
+                            <div class="loading loading-spinner loading-lg"></div>
+                            <span class="ml-4">正在加载统计数据...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 统计监控面板模态框 -->
+    <div id="statistics-modal" class="modal">
+        <div class="modal-box w-11/12 max-w-7xl h-5/6 max-h-screen">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">MaiBot 运行统计监控</h3>
+                <button class="btn btn-sm btn-circle btn-ghost" onclick="closeStatisticsPanel()">✕</button>
+            </div>
+            <div class="divider mt-0"></div>
+            <div id="statistics-content" class="h-full overflow-y-auto">
+                <!-- 统计内容将在这里动态加载 -->
+                <div class="text-center py-20">
+                    <span class="loading loading-spinner loading-lg"></span>
+                    <p class="mt-4">正在加载统计数据...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
