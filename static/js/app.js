@@ -5,6 +5,10 @@ let currentService = 'bot';
 let currentSection = 'monitoring';
 let serviceCardsCollapsed = false;
 
+// WebSocket连接
+let websocket = null;
+let reconnectInterval = null;
+
 // 服务状态
 let serviceStatus = {
     bot: false,
@@ -22,22 +26,110 @@ let logCache = {
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {
     console.log('MoFox-UI 前端已加载');
+    loadWebSettings();
     initializeApp();
     startStatusPolling();
     updateStatusIndicators();
+    initWebSocket();
 });
+
+// 初始化WebSocket连接
+function initWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    try {
+        websocket = new WebSocket(wsUrl);
+        
+        websocket.onopen = function(event) {
+            console.log('WebSocket连接已建立');
+            clearInterval(reconnectInterval);
+        };
+        
+        websocket.onmessage = function(event) {
+            try {
+                const logData = JSON.parse(event.data);
+                handleRealtimeLog(logData);
+            } catch (error) {
+                console.error('解析日志数据失败:', error);
+            }
+        };
+        
+        websocket.onclose = function(event) {
+            console.log('WebSocket连接已关闭，尝试重连...');
+            websocket = null;
+            
+            // 5秒后重连
+            reconnectInterval = setInterval(() => {
+                initWebSocket();
+            }, 5000);
+        };
+        
+        websocket.onerror = function(error) {
+            console.error('WebSocket连接错误:', error);
+        };
+    } catch (error) {
+        console.error('创建WebSocket连接失败:', error);
+    }
+}
+
+// 处理实时日志
+function handleRealtimeLog(logData) {
+    const service = logData.service;
+    
+    // 添加到缓存
+    if (!logCache[service]) {
+        logCache[service] = [];
+    }
+    logCache[service].push(logData);
+    
+    // 保持最新的1000条日志
+    if (logCache[service].length > 1000) {
+        logCache[service] = logCache[service].slice(-1000);
+    }
+    
+    // 如果当前显示的是这个服务的日志，立即更新显示
+    if (currentService === service) {
+        appendLogToContainer(logData);
+    }
+}
+
+// 向日志容器添加单条日志
+function appendLogToContainer(logData) {
+    const logContainer = document.getElementById('log-container');
+    if (!logContainer) return;
+    
+    const logLine = document.createElement('div');
+    logLine.className = 'log-line';
+    
+    const timestamp = new Date(logData.timestamp).toLocaleString('zh-CN');
+    const levelColor = getLevelColor(logData.level);
+    
+    logLine.innerHTML = `
+        <span class="text-gray-400">[${timestamp}]</span>
+        <span class="${levelColor}">${logData.level}</span>
+        <span class="text-white">- ${logData.message}</span>
+    `;
+    
+    logContainer.appendChild(logLine);
+    
+    // 保持在底部
+    logContainer.scrollTop = logContainer.scrollHeight;
+    
+    // 限制DOM中的日志条数以避免性能问题
+    const logLines = logContainer.querySelectorAll('.log-line');
+    if (logLines.length > 500) {
+        for (let i = 0; i < logLines.length - 500; i++) {
+            logLines[i].remove();
+        }
+    }
+}
 
 // 初始化应用
 function initializeApp() {
     // 设置默认选中的导航项
     showSection('monitoring');
     showLogs('bot');
-    
-    // 设置初始日志容器高度
-    adjustLogContainerHeight();
-    
-    // 加载初始数据
-    loadStatus();
 }
 
 // 切换服务卡片折叠状态
@@ -64,18 +156,6 @@ function toggleServiceCards() {
     setTimeout(() => {
         adjustLogContainerHeight();
     }, 300);
-}
-
-// 调整日志容器高度
-function adjustLogContainerHeight() {
-    const logContainer = document.getElementById('log-container');
-    if (logContainer) {
-        if (serviceCardsCollapsed) {
-            logContainer.style.height = 'calc(100vh - 250px)';
-        } else {
-            logContainer.style.height = 'calc(100vh - 350px)';
-        }
-    }
 }
 
 // 显示指定部分
@@ -159,7 +239,6 @@ async function toggleService(serviceName) {
 function updateServiceStatus(serviceName, isRunning) {
     const statusIndicator = document.getElementById(`${serviceName}-status`);
     const actionText = document.getElementById(`${serviceName}-action`);
-    const statusText = document.getElementById(`${serviceName}-status-text`);
     
     if (statusIndicator) {
         statusIndicator.setAttribute('data-status', isRunning ? 'running' : 'stopped');
@@ -168,11 +247,6 @@ function updateServiceStatus(serviceName, isRunning) {
     
     if (actionText) {
         actionText.textContent = isRunning ? '停止' : '启动';
-    }
-    
-    if (statusText) {
-        statusText.textContent = isRunning ? '🟢 运行中' : '🔴 未运行';
-        statusText.className = `status-text ${isRunning ? 'text-green-600' : 'text-red-600'}`;
     }
 }
 
@@ -423,23 +497,6 @@ window.showSection = showSection;
 window.toggleService = toggleService;
 window.showLogs = showLogs;
 window.refreshLogs = refreshLogs;
-window.toggleServiceCards = toggleServiceCards;
-
-// 切换服务卡片折叠状态
-function toggleServiceCards() {
-    const serviceCards = document.getElementById('service-cards');
-    const collapseIcon = document.getElementById('collapse-icon');
-    
-    serviceCardsCollapsed = !serviceCardsCollapsed;
-    
-    if (serviceCardsCollapsed) {
-        serviceCards.classList.add('collapsed');
-        collapseIcon.style.transform = 'rotate(-90deg)';
-    } else {
-        serviceCards.classList.remove('collapsed');
-        collapseIcon.style.transform = 'rotate(0deg)';
-    }
-}
 
 // 导出函数供全局使用
 window.showSection = showSection;
@@ -447,4 +504,187 @@ window.toggleService = toggleService;
 window.showLogs = showLogs;
 window.clearLogs = clearLogs;
 window.refreshLogs = refreshLogs;
-window.toggleServiceCards = toggleServiceCards;
+window.changeTheme = changeTheme;
+window.saveWebSettings = saveWebSettings;
+window.resetWebSettings = resetWebSettings;
+window.exportWebSettings = exportWebSettings;
+
+// 网页设置相关功能
+
+// 网页设置配置
+let webSettings = {
+    theme: 'light',
+    autoRefresh: true,
+    showTimestamp: true,
+    compactMode: false,
+    reconnectInterval: 5,
+    logCacheSize: 1000
+};
+
+// 加载网页设置
+function loadWebSettings() {
+    try {
+        const saved = localStorage.getItem('mofox-ui-settings');
+        if (saved) {
+            webSettings = { ...webSettings, ...JSON.parse(saved) };
+        }
+    } catch (error) {
+        console.error('加载设置失败:', error);
+    }
+    
+    // 应用设置到界面
+    applyWebSettings();
+}
+
+// 应用网页设置
+function applyWebSettings() {
+    // 应用主题
+    applyTheme(webSettings.theme);
+    
+    // 应用设置到控件
+    const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+    const timestampToggle = document.getElementById('timestamp-toggle');
+    const compactModeToggle = document.getElementById('compact-mode-toggle');
+    const reconnectSelect = document.getElementById('reconnect-interval-select');
+    const logCacheSelect = document.getElementById('log-cache-size-select');
+    
+    if (autoRefreshToggle) autoRefreshToggle.checked = webSettings.autoRefresh;
+    if (timestampToggle) timestampToggle.checked = webSettings.showTimestamp;
+    if (compactModeToggle) compactModeToggle.checked = webSettings.compactMode;
+    if (reconnectSelect) reconnectSelect.value = webSettings.reconnectInterval;
+    if (logCacheSelect) logCacheSelect.value = webSettings.logCacheSize;
+    
+    // 应用紧凑模式
+    if (webSettings.compactMode) {
+        document.body.classList.add('compact-mode');
+    } else {
+        document.body.classList.remove('compact-mode');
+    }
+}
+
+// 切换主题
+function changeTheme(themeName) {
+    webSettings.theme = themeName;
+    applyTheme(themeName);
+    
+    // 更新主题卡片选中状态
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.classList.remove('border-accent');
+        card.classList.add('border-transparent');
+    });
+    
+    const selectedCard = document.querySelector(`[data-theme="${themeName}"]`);
+    if (selectedCard) {
+        selectedCard.classList.remove('border-transparent');
+        selectedCard.classList.add('border-accent');
+    }
+    
+    showNotification(`已切换到${getThemeDisplayName(themeName)}`, 'success');
+}
+
+// 应用主题
+function applyTheme(themeName) {
+    const root = document.documentElement;
+    
+    switch (themeName) {
+        case 'dark':
+            root.style.setProperty('--bg-primary', '#1a1a1a');
+            root.style.setProperty('--bg-secondary', '#2d2d2d');
+            root.style.setProperty('--accent', '#4a4a4a');
+            root.style.setProperty('--accent-light', '#606060');
+            root.style.setProperty('--text-primary', '#ffffff');
+            root.style.setProperty('--text-secondary', '#cccccc');
+            break;
+        case 'blue':
+            root.style.setProperty('--bg-primary', '#e0f2fe');
+            root.style.setProperty('--bg-secondary', '#b3e5fc');
+            root.style.setProperty('--accent', '#4fc3f7');
+            root.style.setProperty('--accent-light', '#81d4fa');
+            root.style.setProperty('--text-primary', '#0d47a1');
+            root.style.setProperty('--text-secondary', '#1565c0');
+            break;
+        default: // light
+            root.style.setProperty('--bg-primary', '#fefdf6');
+            root.style.setProperty('--bg-secondary', '#f7f5e6');
+            root.style.setProperty('--accent', '#d4a574');
+            root.style.setProperty('--accent-light', '#e6c79a');
+            root.style.setProperty('--text-primary', '#3a3a3a');
+            root.style.setProperty('--text-secondary', '#666666');
+            break;
+    }
+}
+
+// 获取主题显示名称
+function getThemeDisplayName(themeName) {
+    switch (themeName) {
+        case 'dark': return '深色主题';
+        case 'blue': return '蓝色主题';
+        default: return '米黄主题';
+    }
+}
+
+// 保存网页设置
+function saveWebSettings() {
+    // 从界面读取设置
+    const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+    const timestampToggle = document.getElementById('timestamp-toggle');
+    const compactModeToggle = document.getElementById('compact-mode-toggle');
+    const reconnectSelect = document.getElementById('reconnect-interval-select');
+    const logCacheSelect = document.getElementById('log-cache-size-select');
+    
+    if (autoRefreshToggle) webSettings.autoRefresh = autoRefreshToggle.checked;
+    if (timestampToggle) webSettings.showTimestamp = timestampToggle.checked;
+    if (compactModeToggle) webSettings.compactMode = compactModeToggle.checked;
+    if (reconnectSelect) webSettings.reconnectInterval = parseInt(reconnectSelect.value);
+    if (logCacheSelect) webSettings.logCacheSize = parseInt(logCacheSelect.value);
+    
+    try {
+        localStorage.setItem('mofox-ui-settings', JSON.stringify(webSettings));
+        applyWebSettings();
+        showNotification('设置已保存', 'success');
+    } catch (error) {
+        console.error('保存设置失败:', error);
+        showNotification('保存设置失败', 'error');
+    }
+}
+
+// 重置网页设置
+function resetWebSettings() {
+    webSettings = {
+        theme: 'light',
+        autoRefresh: true,
+        showTimestamp: true,
+        compactMode: false,
+        reconnectInterval: 5,
+        logCacheSize: 1000
+    };
+    
+    try {
+        localStorage.removeItem('mofox-ui-settings');
+        applyWebSettings();
+        showNotification('设置已重置为默认值', 'success');
+    } catch (error) {
+        console.error('重置设置失败:', error);
+        showNotification('重置设置失败', 'error');
+    }
+}
+
+// 导出网页设置
+function exportWebSettings() {
+    try {
+        const settingsJson = JSON.stringify(webSettings, null, 2);
+        const blob = new Blob([settingsJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mofox-ui-settings.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification('设置已导出', 'success');
+    } catch (error) {
+        console.error('导出设置失败:', error);
+        showNotification('导出设置失败', 'error');
+    }
+}

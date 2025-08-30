@@ -58,7 +58,6 @@
         
         .status-running {
             background-color: #22c55e;
-            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
         }
         
         .status-stopped {
@@ -71,6 +70,26 @@
             border-radius: 1rem;
             padding: 1rem;
             margin-bottom: 1rem;
+        }
+        
+        /* 紧凑模式样式 */
+        .compact-mode .card-custom {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .compact-mode .logo-area {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .compact-mode .nav-item {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .compact-mode h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
         }
     </style>
 </head>
@@ -129,82 +148,61 @@
                     </div>
                     <div class="text-sm text-gray-500 mt-1 ml-8">功能开发中...</div>
                 </div>
+                
+                <!-- 网页设置界面 (区域6) -->
+                <div class="nav-item p-3 cursor-pointer" onclick="showSection('websettings')">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                        </svg>
+                        <span class="font-medium">网页设置</span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1 ml-8">界面配置管理</div>
+                </div>
             </div>
         </div>
         
         <!-- 主内容区域 (区域6和7) -->
-        <div class="flex-1 p-6 flex flex-col">
+        <div class="flex-1 flex flex-col h-screen overflow-hidden">
             <!-- Bot状态监控页面 -->
-            <div id="monitoring-section" class="section active flex flex-col flex-1">
+            <div id="monitoring-section" class="section active flex flex-col flex-1 p-6 overflow-y-auto">
                 <!-- 区域6: 服务状态控制 -->
                 <div class="card-custom p-4 mb-6">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between">
                         <h2 class="text-xl font-bold">服务状态控制</h2>
-                        <button class="btn btn-sm btn-ghost" onclick="toggleServiceCards()">
-                            <svg id="collapse-icon" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div id="service-cards" class="grid grid-cols-1 md:grid-cols-3 gap-3 transition-all duration-300">
-                        <!-- Bot服务 -->
-                        <div class="card bg-base-100 shadow-md">
-                            <div class="card-body p-4">
-                                <h3 class="card-title text-base">
-                                    <span class="status-indicator" id="bot-status" data-status="stopped"></span>
-                                    MoFox-Bot
-                                </h3>
-                                <p class="text-xs text-gray-600 mb-2">
-                                    <span class="status-text" id="bot-status-text">未运行</span>
-                                </p>
-                                <div class="card-actions justify-end">
-                                    <button class="btn btn-custom btn-xs" onclick="toggleService('bot')">
-                                        <span id="bot-action">启动</span>
-                                    </button>
-                                </div>
+                        <div class="flex items-center gap-4">
+                            <!-- Bot服务 -->
+                            <div class="flex items-center gap-2">
+                                <span class="status-indicator" id="bot-status" data-status="stopped"></span>
+                                <span class="text-sm font-medium">MoFox-Bot</span>
+                                <button class="btn btn-custom btn-xs" onclick="toggleService('bot')">
+                                    <span id="bot-action">启动</span>
+                                </button>
                             </div>
-                        </div>
-                        
-                        <!-- Adapter服务 -->
-                        <div class="card bg-base-100 shadow-md">
-                            <div class="card-body p-4">
-                                <h3 class="card-title text-base">
-                                    <span class="status-indicator" id="adapter-status" data-status="stopped"></span>
-                                    Adapter
-                                </h3>
-                                <p class="text-xs text-gray-600 mb-2">
-                                    <span class="status-text" id="adapter-status-text">未运行</span>
-                                </p>
-                                <div class="card-actions justify-end">
-                                    <button class="btn btn-custom btn-xs" onclick="toggleService('adapter')">
-                                        <span id="adapter-action">启动</span>
-                                    </button>
-                                </div>
+                            
+                            <!-- Adapter服务 -->
+                            <div class="flex items-center gap-2">
+                                <span class="status-indicator" id="adapter-status" data-status="stopped"></span>
+                                <span class="text-sm font-medium">Adapter</span>
+                                <button class="btn btn-custom btn-xs" onclick="toggleService('adapter')">
+                                    <span id="adapter-action">启动</span>
+                                </button>
                             </div>
-                        </div>
-                        
-                        <!-- Matcha-Adapter服务 -->
-                        <div class="card bg-base-100 shadow-md">
-                            <div class="card-body p-4">
-                                <h3 class="card-title text-base">
-                                    <span class="status-indicator" id="matcha-status" data-status="stopped"></span>
-                                    Matcha-Adapter
-                                </h3>
-                                <p class="text-xs text-gray-600 mb-2">
-                                    <span class="status-text" id="matcha-status-text">未运行</span>
-                                </p>
-                                <div class="card-actions justify-end">
-                                    <button class="btn btn-custom btn-xs" onclick="toggleService('matcha')">
-                                        <span id="matcha-action">启动</span>
-                                    </button>
-                                </div>
+                            
+                            <!-- Matcha-Adapter服务 -->
+                            <div class="flex items-center gap-2">
+                                <span class="status-indicator" id="matcha-status" data-status="stopped"></span>
+                                <span class="text-sm font-medium">Matcha-Adapter</span>
+                                <button class="btn btn-custom btn-xs" onclick="toggleService('matcha')">
+                                    <span id="matcha-action">启动</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- 区域7: 状态监控和日志 -->
-                <div class="card-custom p-6 flex flex-col flex-1" id="log-panel">
+                <div class="card-custom p-6 flex-1" id="log-panel">
                     <h2 class="text-xl font-bold mb-4">日志输出</h2>
                     
                     <!-- 日志选项卡 -->
@@ -215,9 +213,9 @@
                     </div>
                     
                     <!-- 日志内容 -->
-                    <div class="mt-4 flex flex-col flex-1">
-                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-y-auto font-mono text-sm flex-1" id="log-container" style="min-height: 400px;">
-                            <div class="log-line">[2025-08-29 15:35:26] INFO - MoFox-UI 管理界面已启动</div>
+                    <div class="mt-4 flex flex-col" style="height: calc(100vh - 280px);">
+                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-y-auto font-mono text-sm flex-1" id="log-container">
+                            <div class="log-line">[2025-08-29 15:35:26] INFO - MoFox-UI 已启动</div>
                         </div>
                         <div class="flex justify-end items-center mt-2">
                             <button class="btn btn-sm btn-outline" onclick="refreshLogs()">刷新</button>
@@ -227,7 +225,7 @@
             </div>
             
             <!-- 配置管理页面 -->
-            <div id="config-section" class="section hidden">
+            <div id="config-section" class="section hidden flex flex-col flex-1 p-6 overflow-y-auto">
                 <div class="card-custom p-6">
                     <h2 class="text-xl font-bold mb-4">配置管理</h2>
                     <div class="text-center py-20">
@@ -239,7 +237,7 @@
             </div>
             
             <!-- 插件管理页面 -->
-            <div id="plugins-section" class="section hidden">
+            <div id="plugins-section" class="section hidden flex flex-col flex-1 p-6 overflow-y-auto">
                 <div class="card-custom p-6">
                     <h2 class="text-xl font-bold mb-4">插件管理</h2>
                     <div class="text-center py-20">
@@ -251,7 +249,7 @@
             </div>
             
             <!-- Live2D模型页面 -->
-            <div id="live2d-section" class="section hidden">
+            <div id="live2d-section" class="section hidden flex flex-col flex-1 p-6 overflow-y-auto">
                 <div class="card-custom p-6">
                     <h2 class="text-xl font-bold mb-4">Live2D 模型</h2>
                     <div class="text-center py-20">
@@ -260,6 +258,135 @@
                         <p class="text-gray-600">Live2D 模型功能正在开发中，敬请期待...</p>
                     </div>
                 </div>
+            </div>
+            
+            <!-- 网页设置页面 -->
+            <div id="websettings-section" class="section hidden flex flex-col flex-1 p-6 overflow-y-auto">
+                <div class="card-custom p-6 h-full overflow-hidden flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">网页设置</h2>
+                        <button class="btn btn-sm btn-outline" onclick="resetWebSettings()">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            恢复默认
+                        </button>
+                    </div>
+                    
+                    <!-- 可滚动内容区域 -->
+                    <div class="flex-1 overflow-y-auto pr-2">
+                        <!-- 主题设置 -->
+                        <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2M9 3h2a2 2 0 012 2v4a2 2 0 002 2 2 2 0 012-2V7a2 2 0 012-2h2"></path>
+                            </svg>
+                            界面主题
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="theme-card card bg-base-100 border-2 border-accent" data-theme="light">
+                                <div class="card-body p-4">
+                                    <div class="theme-preview mb-3" style="background: linear-gradient(135deg, #fefdf6 0%, #f7f5e6 50%, #d4a574 100%); height: 60px; border-radius: 0.5rem;"></div>
+                                    <h4 class="font-semibold">米黄主题（当前）</h4>
+                                    <p class="text-sm text-gray-600">温暖舒适的米黄色调</p>
+                                </div>
+                            </div>
+                            
+                            <div class="theme-card card bg-base-100 border-2 border-transparent hover:border-gray-300 cursor-pointer" data-theme="dark" onclick="changeTheme('dark')">
+                                <div class="card-body p-4">
+                                    <div class="theme-preview mb-3" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #4a4a4a 100%); height: 60px; border-radius: 0.5rem;"></div>
+                                    <h4 class="font-semibold">深色主题</h4>
+                                    <p class="text-sm text-gray-600">护眼的深色界面</p>
+                                </div>
+                            </div>
+                            
+                            <div class="theme-card card bg-base-100 border-2 border-transparent hover:border-gray-300 cursor-pointer" data-theme="blue" onclick="changeTheme('blue')">
+                                <div class="card-body p-4">
+                                    <div class="theme-preview mb-3" style="background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 50%, #4fc3f7 100%); height: 60px; border-radius: 0.5rem;"></div>
+                                    <h4 class="font-semibold">蓝色主题</h4>
+                                    <p class="text-sm text-gray-600">清新的蓝色风格</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 显示设置 -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            显示设置
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-base-100 rounded-lg">
+                                <div>
+                                    <h4 class="font-medium">自动刷新日志</h4>
+                                    <p class="text-sm text-gray-600">启用日志自动刷新功能</p>
+                                </div>
+                                <input type="checkbox" class="toggle toggle-accent" checked id="auto-refresh-toggle">
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 bg-base-100 rounded-lg">
+                                <div>
+                                    <h4 class="font-medium">日志时间戳</h4>
+                                    <p class="text-sm text-gray-600">在日志中显示详细时间戳</p>
+                                </div>
+                                <input type="checkbox" class="toggle toggle-accent" checked id="timestamp-toggle">
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 bg-base-100 rounded-lg">
+                                <div>
+                                    <h4 class="font-medium">紧凑模式</h4>
+                                    <p class="text-sm text-gray-600">使用更紧凑的界面布局</p>
+                                </div>
+                                <input type="checkbox" class="toggle toggle-accent" id="compact-mode-toggle">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 高级设置 -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            高级设置
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-base-100 rounded-lg">
+                                <div>
+                                    <h4 class="font-medium">WebSocket 重连间隔</h4>
+                                    <p class="text-sm text-gray-600">WebSocket断开后的重连间隔时间（秒）</p>
+                                </div>
+                                <select class="select select-bordered select-sm w-24" id="reconnect-interval-select">
+                                    <option value="3">3秒</option>
+                                    <option value="5" selected>5秒</option>
+                                    <option value="10">10秒</option>
+                                    <option value="30">30秒</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 bg-base-100 rounded-lg">
+                                <div>
+                                    <h4 class="font-medium">日志缓存大小</h4>
+                                    <p class="text-sm text-gray-600">前端保存的日志条数</p>
+                                </div>
+                                <select class="select select-bordered select-sm w-32" id="log-cache-size-select">
+                                    <option value="500">500条</option>
+                                    <option value="1000" selected>1000条</option>
+                                    <option value="2000">2000条</option>
+                                    <option value="5000">5000条</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 滚动内容区域结束 -->
+                </div>
+                
+                <!-- 固定底部操作栏 -->
+                <!-- 已移除，不需要这个 -->
             </div>
         </div>
     </div>
