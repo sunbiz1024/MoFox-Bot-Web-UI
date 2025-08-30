@@ -388,11 +388,6 @@ function clearLogs() {
     }
 }
 
-// 刷新日志
-function refreshLogs() {
-    loadLogs(currentService);
-}
-
 // 加载状态
 async function loadStatus() {
     try {
@@ -496,14 +491,12 @@ function debounce(func, wait) {
 window.showSection = showSection;
 window.toggleService = toggleService;
 window.showLogs = showLogs;
-window.refreshLogs = refreshLogs;
 
 // 导出函数供全局使用
 window.showSection = showSection;
 window.toggleService = toggleService;
 window.showLogs = showLogs;
 window.clearLogs = clearLogs;
-window.refreshLogs = refreshLogs;
 window.changeTheme = changeTheme;
 window.saveWebSettings = saveWebSettings;
 window.resetWebSettings = resetWebSettings;

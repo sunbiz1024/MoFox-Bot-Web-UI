@@ -57,6 +57,7 @@ pub async fn create_app() -> Result<Router> {
         .route("/api/start/:service", post(start_service))
         .route("/api/stop/:service", post(stop_service))
         .route("/api/check/:service", get(check_service_status))
+        .route("/api/log", post(receive_service_log))  // 新增：接收服务日志
         .route("/ws", get(websocket_handler))
         .nest_service("/static", ServeDir::new("static"))
         .layer(
@@ -296,4 +297,23 @@ async fn check_service_status(
             }))
         }
     }
+}
+
+// 接收来自服务的日志
+#[derive(serde::Deserialize)]
+struct ServiceLogRequest {
+    service: String,
+    level: String,
+    message: String,
+    timestamp: Option<String>,
+}
+
+async fn receive_service_log(
+    State(state): State<AppState>,
+    Json(log_req): Json<ServiceLogRequest>,
+) -> Json<serde_json::Value> {
+    // 添加日志到日志服务
+    state.log_service.add_log(&log_req.service, &log_req.level, &log_req.message).await;
+    
+    Json(serde_json::json!({"status": "ok"}))
 }
