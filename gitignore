@@ -1,0 +1,27 @@
+# 编译输出
+/target/
+
+# 日志文件
+/logs/
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 配置文件备份
+config.toml.bak
+*.bak
+
+# Rust 特定
+Cargo.lock
