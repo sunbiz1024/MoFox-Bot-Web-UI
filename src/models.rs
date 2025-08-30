@@ -39,33 +39,3 @@ pub struct ServiceResponse {
     pub success: bool,
     pub message: String,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StatisticsData {
-    pub total_messages: u64,
-    pub total_requests: u64,
-    pub total_cost: f64,
-    pub online_time: String,
-    pub model_stats: Vec<ModelStat>,
-    pub module_stats: Vec<ModuleStat>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModelStat {
-    pub name: String,
-    pub calls: u64,
-    pub input_tokens: u64,
-    pub output_tokens: u64,
-    pub cost: f64,
-    pub avg_time: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModuleStat {
-    pub name: String,
-    pub calls: u64,
-    pub input_tokens: u64,
-    pub output_tokens: u64,
-    pub cost: f64,
-    pub avg_time: f64,
-}

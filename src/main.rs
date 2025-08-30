@@ -2,7 +2,9 @@ use mofox_ui::create_app;
 use std::net::SocketAddr;
 use tracing::{info, Level};
 use tracing_subscriber;
-
+/*
+阿卧槽这rs怎么这么坏呜呜呜
+*/
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 初始化日志

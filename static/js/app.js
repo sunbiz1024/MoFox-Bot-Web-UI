@@ -78,93 +78,6 @@ function adjustLogContainerHeight() {
     }
 }
 
-// 刷新统计数据
-async function refreshStatistics() {
-    const content = document.getElementById('statistics-content');
-    const refreshBtn = document.querySelector('button[onclick="refreshStatistics()"]');
-    
-    // 显示加载状态
-    content.innerHTML = `
-        <div class="flex justify-center items-center h-full">
-            <div class="loading loading-spinner loading-lg"></div>
-            <span class="ml-4">正在重新生成统计数据...</span>
-        </div>
-    `;
-    
-    // 禁用刷新按钮
-    if (refreshBtn) {
-        refreshBtn.disabled = true;
-        refreshBtn.classList.add('loading');
-    }
-    
-    try {
-        // 调用后端刷新接口
-        const refreshResponse = await fetch('/api/refresh-statistics', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const refreshResult = await refreshResponse.json();
-        
-        if (refreshResult.success) {
-            // 刷新成功后重新加载统计数据
-            await loadStatisticsData(content);
-            showNotification('统计数据已更新', 'success');
-        } else {
-            throw new Error(refreshResult.message);
-        }
-    } catch (error) {
-        console.error('刷新统计数据失败:', error);
-        content.innerHTML = `
-            <div class="text-center py-20">
-                <div class="text-6xl mb-4">⚠️</div>
-                <h3 class="text-2xl font-bold mb-2">刷新失败</h3>
-                <p class="text-gray-600">无法刷新统计数据: ${error.message}</p>
-                <button class="btn btn-custom mt-4" onclick="refreshStatistics()">重试</button>
-            </div>
-        `;
-        showNotification('刷新失败: ' + error.message, 'error');
-    } finally {
-        // 恢复刷新按钮
-        if (refreshBtn) {
-            refreshBtn.disabled = false;
-            refreshBtn.classList.remove('loading');
-        }
-    }
-}
-
-// 加载统计数据
-async function loadStatisticsData(content) {
-    try {
-        content.innerHTML = `
-            <div class="flex justify-center items-center h-full">
-                <div class="loading loading-spinner loading-lg"></div>
-                <span class="ml-4">正在加载统计数据...</span>
-            </div>
-        `;
-        
-        const response = await fetch('/api/statistics');
-        if (response.ok) {
-            const html = await response.text();
-            content.innerHTML = html;
-        } else {
-            throw new Error('无法加载统计数据');
-        }
-    } catch (error) {
-        console.error('加载统计数据失败:', error);
-        content.innerHTML = `
-            <div class="text-center py-20">
-                <div class="text-6xl mb-4">⚠️</div>
-                <h3 class="text-2xl font-bold mb-2">加载失败</h3>
-                <p class="text-gray-600">无法加载统计数据，请稍后重试</p>
-                <button class="btn btn-custom mt-4" onclick="loadStatisticsData(document.getElementById('statistics-content'))">重试</button>
-            </div>
-        `;
-    }
-}
-
 // 显示指定部分
 function showSection(sectionName) {
     // 隐藏所有部分
@@ -179,14 +92,6 @@ function showSection(sectionName) {
     if (targetSection) {
         targetSection.classList.remove('hidden');
         targetSection.classList.add('active');
-    }
-    
-    // 如果是统计页面，加载统计数据
-    if (sectionName === 'statistics') {
-        const content = document.getElementById('statistics-content');
-        if (content) {
-            loadStatisticsData(content);
-        }
     }
     
     // 更新导航项样式
@@ -519,8 +424,6 @@ window.toggleService = toggleService;
 window.showLogs = showLogs;
 window.refreshLogs = refreshLogs;
 window.toggleServiceCards = toggleServiceCards;
-window.openStatisticsPanel = openStatisticsPanel;
-window.closeStatisticsPanel = closeStatisticsPanel;
 
 // 切换服务卡片折叠状态
 function toggleServiceCards() {
@@ -538,57 +441,6 @@ function toggleServiceCards() {
     }
 }
 
-// 打开统计监控面板
-async function openStatisticsPanel() {
-    const modal = document.getElementById('statistics-modal');
-    const content = document.getElementById('statistics-content');
-    
-    // 显示模态框
-    modal.classList.add('show');
-    
-    // 加载统计数据
-    try {
-        const response = await fetch('/api/statistics');
-        if (response.ok) {
-            const html = await response.text();
-            content.innerHTML = html;
-        } else {
-            throw new Error('无法加载统计数据');
-        }
-    } catch (error) {
-        console.error('加载统计数据失败:', error);
-        content.innerHTML = `
-            <div class="text-center py-20">
-                <div class="text-6xl mb-4">⚠️</div>
-                <h3 class="text-2xl font-bold mb-2">加载失败</h3>
-                <p class="text-gray-600">无法加载统计数据，请稍后重试</p>
-                <button class="btn btn-custom mt-4" onclick="openStatisticsPanel()">重新加载</button>
-            </div>
-        `;
-    }
-}
-
-// 关闭统计监控面板
-function closeStatisticsPanel() {
-    const modal = document.getElementById('statistics-modal');
-    modal.classList.remove('show');
-}
-
-// 点击模态框外部关闭
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('statistics-modal');
-    if (event.target === modal) {
-        closeStatisticsPanel();
-    }
-});
-
-// ESC键关闭模态框
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeStatisticsPanel();
-    }
-});
-
 // 导出函数供全局使用
 window.showSection = showSection;
 window.toggleService = toggleService;
@@ -596,5 +448,3 @@ window.showLogs = showLogs;
 window.clearLogs = clearLogs;
 window.refreshLogs = refreshLogs;
 window.toggleServiceCards = toggleServiceCards;
-window.openStatisticsPanel = openStatisticsPanel;
-window.closeStatisticsPanel = closeStatisticsPanel;

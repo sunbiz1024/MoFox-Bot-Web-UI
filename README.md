@@ -13,7 +13,6 @@ MaiBot-Plus 的 Web 管理界面，使用 Rust + Axum 作为后端，DaisyUI + T
 #### 2. Bot 状态监控界面
 - **服务控制**: 启动/停止 Bot、Adapter、Matcha-Adapter 服务
 - **状态指示**: 实时显示各服务运行状态（绿色表示运行中，红色表示已停止）
-- **统计信息**: 显示运行时间、总消息数、总请求数、总花费等关键指标
 
 #### 7. 监控面板
 - **日志输出**: 分别显示 Bot、Adapter、Matcha-Adapter 的日志

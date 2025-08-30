@@ -219,13 +219,7 @@
                         <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-y-auto font-mono text-sm flex-1" id="log-container" style="min-height: 400px;">
                             <div class="log-line">[2025-08-29 15:35:26] INFO - MoFox-UI 管理界面已启动</div>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <button class="btn btn-sm btn-custom" onclick="showSection('statistics')">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
-                                统计面板
-                            </button>
+                        <div class="flex justify-end items-center mt-2">
                             <button class="btn btn-sm btn-outline" onclick="refreshLogs()">刷新</button>
                         </div>
                     </div>
@@ -265,48 +259,6 @@
                         <h3 class="text-2xl font-bold mb-2">功能开发中</h3>
                         <p class="text-gray-600">Live2D 模型功能正在开发中，敬请期待...</p>
                     </div>
-                </div>
-            </div>
-            
-            <!-- 统计监控页面 -->
-            <div id="statistics-section" class="section hidden">
-                <div class="card-custom p-6 h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">MaiBot 运行统计监控</h2>
-                        <button class="btn btn-sm btn-outline" onclick="refreshStatistics()">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                            </svg>
-                            刷新统计
-                        </button>
-                    </div>
-                    <div class="divider mt-0"></div>
-                    
-                    <!-- 统计内容容器 -->
-                    <div id="statistics-content" class="h-full overflow-y-auto">
-                        <div class="flex justify-center items-center h-full">
-                            <div class="loading loading-spinner loading-lg"></div>
-                            <span class="ml-4">正在加载统计数据...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 统计监控面板模态框 -->
-    <div id="statistics-modal" class="modal">
-        <div class="modal-box w-11/12 max-w-7xl h-5/6 max-h-screen">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg">MaiBot 运行统计监控</h3>
-                <button class="btn btn-sm btn-circle btn-ghost" onclick="closeStatisticsPanel()">✕</button>
-            </div>
-            <div class="divider mt-0"></div>
-            <div id="statistics-content" class="h-full overflow-y-auto">
-                <!-- 统计内容将在这里动态加载 -->
-                <div class="text-center py-20">
-                    <span class="loading loading-spinner loading-lg"></span>
-                    <p class="mt-4">正在加载统计数据...</p>
                 </div>
             </div>
         </div>

@@ -25,9 +25,9 @@ impl LogService {
             message: message.to_string(),
         });
 
-        // 保持最新的 1000 条日志
-        if service_logs.len() > 1000 {
-            service_logs.drain(..service_logs.len() - 1000);
+        // 保持最新的 2000 条日志
+        if service_logs.len() > 2000 {
+            service_logs.drain(..service_logs.len() - 2000);
         }
     }
 
