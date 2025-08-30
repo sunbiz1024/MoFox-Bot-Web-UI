@@ -13,7 +13,7 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 use tokio::sync::{RwLock, broadcast};
 use tokio::process::Command as TokioCommand;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::AsyncBufReadExt;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 use tracing::{error, info};
@@ -56,6 +56,7 @@ pub async fn create_app() -> Result<Router> {
         .route("/api/logs/:service", get(get_logs))
         .route("/api/start/:service", post(start_service))
         .route("/api/stop/:service", post(stop_service))
+        .route("/api/check/:service", get(check_service_status))
         .route("/ws", get(websocket_handler))
         .nest_service("/static", ServeDir::new("static"))
         .layer(
@@ -150,76 +151,33 @@ async fn spawn_service_with_logging(
     };
 
     // 使用内置Python环境
-    let python_path = "../python_embedded/python.exe";
+    let python_path = std::path::Path::new("../python_embedded/python.exe")
+        .canonicalize()
+        .unwrap_or_else(|_| std::path::PathBuf::from("../python_embedded/python.exe"));
     
-    match TokioCommand::new(python_path)
+    // 添加调试日志
+    let debug_msg = format!("准备执行命令: {:?} {} (工作目录: {})", python_path, script, working_dir);
+    state.log_service.add_log(&service_name, "DEBUG", &debug_msg).await;
+    
+    match TokioCommand::new(&python_path)
         .arg(script)
         .current_dir(working_dir)
         .env("EULA_AGREE", "55243b84ba00cd3d8774b17d30ee5b98")
         .env("PRIVACY_AGREE", "4264f89020356519cf4d2e840c5d8088") // 自动配置同意环境变量喵
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())  // 不重定向，让程序在后台运行
+        .stderr(std::process::Stdio::null())  // 这样可以避免日志被阻断
         .spawn()
     {
-        Ok(mut child) => {
+        Ok(child) => {
             let process_id = child.id();
-            let start_message = format!("{} 正在启动... (PID: {:?})", service_display_name, process_id);
+            let start_message = format!("{} 启动成功 (PID: {})", service_display_name, process_id.unwrap_or(0));
             state.log_service.add_log(&service_name, "INFO", &start_message).await;
+            
+            // 简单的状态检查提示
+            let hint_msg = format!("{} 正在后台运行，请检查独立控制台窗口查看日志", service_display_name);
+            state.log_service.add_log(&service_name, "INFO", &hint_msg).await;
 
-            // 捕获 stdout（就是日志输出的其实，但是不知道为什么还有一点问题，在实际的面板上基本看不到日志这一块）
-            if let Some(stdout) = child.stdout.take() {
-                let state_clone = state.clone();
-                let service_clone = service_name.clone();
-                tokio::spawn(async move {
-                    let reader = BufReader::new(stdout);
-                    let mut lines = reader.lines();
-                    while let Ok(Some(line)) = lines.next_line().await {
-                        if !line.trim().is_empty() {
-                            state_clone.log_service.add_log(&service_clone, "INFO", &line).await;
-                        }
-                    }
-                });
-            }
-
-            // 捕获 stderr
-            if let Some(stderr) = child.stderr.take() {
-                let state_clone = state.clone();
-                let service_clone = service_name.clone();
-                tokio::spawn(async move {
-                    let reader = BufReader::new(stderr);
-                    let mut lines = reader.lines();
-                    while let Ok(Some(line)) = lines.next_line().await {
-                        if !line.trim().is_empty() {
-                            state_clone.log_service.add_log(&service_clone, "ERROR", &line).await;
-                        }
-                    }
-                });
-            }
-
-            // 监控进程状态
-            let state_clone = state.clone();
-            let service_clone = service_name.clone();
-            let service_display_clone = service_display_name.to_string();
-            tokio::spawn(async move {
-                match child.wait().await {
-                    Ok(exit_status) => {
-                        let msg = if exit_status.success() {
-                            format!("{} 进程正常退出", service_display_clone)
-                        } else {
-                            format!("{} 进程异常退出，退出码: {:?}", service_display_clone, exit_status.code())
-                        };
-                        state_clone.log_service.add_log(&service_clone, "WARN", &msg).await;
-                    }
-                    Err(e) => {
-                        let msg = format!("{} 进程监控失败: {}", service_display_clone, e);
-                        state_clone.log_service.add_log(&service_clone, "ERROR", &msg).await;
-                    }
-                }
-            });
-
-            let success_message = format!("{} 启动命令已执行", service_display_name);  // 启动命令真的有吗？
-            state.log_service.add_log(&service_name, "INFO", &success_message).await;
-            (true, success_message)
+            (true, start_message)
         }
         Err(e) => {
             let error_msg = format!("{} 启动失败: {}", service_display_name, e);
@@ -300,5 +258,42 @@ async fn websocket_connection(socket: WebSocket, state: AppState) {
     tokio::select! {
         _ = send_task => {},
         _ = recv_task => {},
+    }
+}
+
+// 检查服务运行状态
+async fn check_service_status(
+    axum::extract::Path(service): axum::extract::Path<String>,
+) -> Json<serde_json::Value> {
+    use std::process::Command;
+    
+    let process_name = match service.as_str() {
+        "bot" => "python.exe",
+        "adapter" => "python.exe", 
+        "matcha" => "python.exe",
+        _ => return Json(serde_json::json!({"running": false, "error": "Unknown service"}))
+    };
+    
+    // 使用tasklist检查进程是否运行
+    let output = Command::new("tasklist")
+        .args(&["/FI", &format!("IMAGENAME eq {}", process_name)])
+        .output();
+    
+    match output {
+        Ok(result) => {
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            let running = stdout.contains(process_name);
+            Json(serde_json::json!({
+                "running": running,
+                "service": service,
+                "checked_at": chrono::Utc::now().to_rfc3339()
+            }))
+        }
+        Err(e) => {
+            Json(serde_json::json!({
+                "running": false,
+                "error": format!("Failed to check process: {}", e)
+            }))
+        }
     }
 }
