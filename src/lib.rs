@@ -13,7 +13,7 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 use tokio::sync::{RwLock, broadcast};
 use tokio::process::Command as TokioCommand;
-use tokio::io::AsyncBufReadExt;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 use tracing::{error, info};
@@ -44,7 +44,7 @@ pub async fn create_app() -> Result<Router> {
     let app_state = AppState {
         tera,
         bot_status: Arc::new(RwLock::new(BotStatus::default())),
-        log_service: Arc::new(LogService::new()),
+        log_service: Arc::new(LogService::with_broadcaster(log_tx.clone())),
         log_broadcaster: Arc::new(log_tx),
     };
 
@@ -165,18 +165,69 @@ async fn spawn_service_with_logging(
         .current_dir(working_dir)
         .env("EULA_AGREE", "55243b84ba00cd3d8774b17d30ee5b98")
         .env("PRIVACY_AGREE", "4264f89020356519cf4d2e840c5d8088") // 自动配置同意环境变量喵
-        .stdout(std::process::Stdio::null())  // 不重定向，让程序在后台运行
-        .stderr(std::process::Stdio::null())  // 这样可以避免日志被阻断
+        .stdout(std::process::Stdio::piped())  // 捕获stdout
+        .stderr(std::process::Stdio::piped())  // 捕获stderr
         .spawn()
     {
-        Ok(child) => {
+        Ok(mut child) => {
             let process_id = child.id();
             let start_message = format!("{} 启动成功 (PID: {})", service_display_name, process_id.unwrap_or(0));
             state.log_service.add_log(&service_name, "INFO", &start_message).await;
             
-            // 简单的状态检查提示
-            let hint_msg = format!("{} 正在后台运行，请检查独立控制台窗口查看日志", service_display_name);
-            state.log_service.add_log(&service_name, "INFO", &hint_msg).await;
+            // 启动任务来处理stdout输出
+            if let Some(stdout) = child.stdout.take() {
+                let state_clone = state.clone();
+                let service_clone = service_name.clone();
+                tokio::spawn(async move {
+                    let reader = BufReader::new(stdout);
+                    let mut lines = reader.lines();
+                    while let Ok(Some(line)) = lines.next_line().await {
+                        state_clone.log_service.add_log(&service_clone, "INFO", &line).await;
+                    }
+                });
+            }
+            
+            // 启动任务来处理stderr输出
+            if let Some(stderr) = child.stderr.take() {
+                let state_clone = state.clone();
+                let service_clone = service_name.clone();
+                tokio::spawn(async move {
+                    let reader = BufReader::new(stderr);
+                    let mut lines = reader.lines();
+                    while let Ok(Some(line)) = lines.next_line().await {
+                        // stderr通常是错误或警告信息
+                        let log_level = if line.contains("ERROR") || line.contains("CRITICAL") {
+                            "ERROR"
+                        } else if line.contains("WARNING") || line.contains("WARN") {
+                            "WARNING"
+                        } else {
+                            "INFO"
+                        };
+                        state_clone.log_service.add_log(&service_clone, log_level, &line).await;
+                    }
+                });
+            }
+            
+            // 启动任务来等待进程结束
+            let state_clone = state.clone();
+            let service_clone = service_name.clone();
+            let display_name_clone = service_display_name.to_string();
+            tokio::spawn(async move {
+                match child.wait().await {
+                    Ok(status) => {
+                        let exit_msg = if status.success() {
+                            format!("{} 正常退出", display_name_clone)
+                        } else {
+                            format!("{} 异常退出，退出码: {:?}", display_name_clone, status.code())
+                        };
+                        state_clone.log_service.add_log(&service_clone, "INFO", &exit_msg).await;
+                    }
+                    Err(e) => {
+                        let error_msg = format!("{} 等待进程结束时出错: {}", display_name_clone, e);
+                        state_clone.log_service.add_log(&service_clone, "ERROR", &error_msg).await;
+                    }
+                }
+            });
 
             (true, start_message)
         }
@@ -312,8 +363,18 @@ async fn receive_service_log(
     State(state): State<AppState>,
     Json(log_req): Json<ServiceLogRequest>,
 ) -> Json<serde_json::Value> {
-    // 添加日志到日志服务
+    // 添加日志到日志服务（这会自动通过WebSocket广播）
     state.log_service.add_log(&log_req.service, &log_req.level, &log_req.message).await;
+    
+    // 手动广播确保WebSocket客户端能收到
+    let log_json = serde_json::json!({
+        "timestamp": log_req.timestamp.unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+        "level": log_req.level,
+        "service": log_req.service,
+        "message": log_req.message
+    });
+    
+    let _ = state.log_broadcaster.send(log_json.to_string());
     
     Json(serde_json::json!({"status": "ok"}))
 }

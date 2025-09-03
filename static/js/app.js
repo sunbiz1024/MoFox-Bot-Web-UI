@@ -102,7 +102,18 @@ function appendLogToContainer(logData) {
     const logLine = document.createElement('div');
     logLine.className = 'log-line';
     
-    const timestamp = new Date(logData.timestamp).toLocaleString('zh-CN');
+    // 处理时间戳，支持多种格式
+    let timestamp;
+    if (logData.timestamp) {
+        try {
+            timestamp = new Date(logData.timestamp).toLocaleString('zh-CN');
+        } catch (e) {
+            timestamp = logData.timestamp;
+        }
+    } else {
+        timestamp = new Date().toLocaleString('zh-CN');
+    }
+    
     const levelColor = getLevelColor(logData.level);
     
     logLine.innerHTML = `

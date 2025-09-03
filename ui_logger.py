@@ -22,14 +22,22 @@ class UILogger:
                 payload = {
                     "service": self.service_name,
                     "level": level,
-                    "message": message
+                    "message": message,
+                    "timestamp": None  # 让服务器端自动添加时间戳
                 }
-                self.session.post(
+                print(f"[ui_logger] 发送到 {self.ui_url}/api/log: {payload}")
+                response = self.session.post(
                     f"{self.ui_url}/api/log",
                     json=payload,
                     timeout=1
                 )
-            except:
+                print(f"[ui_logger] 响应状态: {response.status_code}")
+                if response.status_code == 200:
+                    print(f"[ui_logger] 日志发送成功: {level} - {message[:50]}...")
+                else:
+                    print(f"[ui_logger] 服务器响应错误: {response.status_code}")
+            except Exception as e:
+                print(f"[ui_logger] 发送失败: {e}")
                 # 静默失败，不影响主程序运行
                 pass
         
