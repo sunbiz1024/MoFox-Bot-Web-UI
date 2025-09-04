@@ -207,3 +207,186 @@
     height: 100%;
     z-index: -1;
 }
+
+/* 配置卡片样式 - 简洁版本 */
+.config-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.config-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.config-card:hover {
+    border-color: var(--accent-light);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.config-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.config-card-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.config-card-info .info-item {
+    margin-bottom: 0.25rem;
+}
+
+.config-card-info .info-item:last-child {
+    margin-bottom: 0;
+}
+
+.config-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.config-card-delete {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: background-color 0.2s ease;
+}
+
+.config-card-delete:hover {
+    background: #c82333;
+}
+
+.config-card-expand {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease;
+}
+
+.config-card-expand:hover {
+    background: var(--bg-primary);
+}
+
+.config-card-content {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--accent);
+}
+
+.config-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+}
+
+.config-section-header h3 {
+    margin: 0;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.add-new-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    text-align: center;
+    border: 2px dashed var(--accent);
+    border-radius: 0.75rem;
+    background: var(--bg-primary);
+}
+
+.add-new-section .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.add-new-section .btn:hover {
+    background: var(--accent-light);
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+/* 插件选择器样式改进 */
+.plugin-selector-wrapper {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.plugin-selector-wrapper .form-group {
+    margin: 0;
+}
+
+.plugin-selector-wrapper .form-label {
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.theme-select {
+    background: var(--bg-primary);
+    border: 1px solid var(--accent);
+    color: var(--text-primary);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    width: 100%;
+}
+
+.theme-select:focus {
+    border-color: var(--accent-light);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+    outline: none;
+}
+
+.selected-plugin-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}

@@ -896,43 +896,97 @@ function renderModelConfig(config) {
     
     // API提供商配置
     html += '<div id="model-providers-content" class="model-subcontent active">';
-    const providerSections = config.sections.filter(s => s.name === 'api_providers' || s.name.includes('api_providers'));
+    html += '<div class="config-section-header">';
+    html += '<h3>API提供商配置</h3>';
+    html += '</div>';
+    
+    // 查找所有API提供商节（通常以数字索引命名，如 [0], [1], [2]）
+    const providerSections = config.sections.filter(s => 
+        s.name.match(/^\[\d+\]$/) && 
+        s.fields && 
+        s.fields.some(f => f.name === 'name' || f.name === 'base_url')
+    );
+    
     if (providerSections.length > 0) {
-        html += '<div class="config-sections compact">';
-        providerSections.forEach(section => {
-            html += renderConfigSection(section, 'model');
+        html += '<div class="config-cards-grid">';
+        providerSections.forEach((section, index) => {
+            html += renderProviderCard(section, index);
         });
         html += '</div>';
     } else {
         html += '<div class="alert alert-info">暂无API提供商配置</div>';
     }
+    
+    html += '<div class="add-new-section">';
+    html += '<button class="btn btn-primary" onclick="addNewProvider()">+ 添加新提供商</button>';
+    html += '</div>';
     html += '</div>';
     
     // 模型配置
     html += '<div id="model-models-content" class="model-subcontent">';
-    const modelSections = config.sections.filter(s => s.name === 'models' || s.name.includes('models'));
+    html += '<div class="config-section-header">';
+    html += '<h3>模型配置</h3>';
+    html += '</div>';
+    
+    // 查找所有模型配置节
+    const modelSections = config.sections.filter(s => 
+        s.name.match(/^\[\d+\]$/) && 
+        s.fields && 
+        s.fields.some(f => f.name === 'model_identifier' || f.name === 'api_provider')
+    );
+    
     if (modelSections.length > 0) {
-        html += '<div class="config-sections compact">';
-        modelSections.forEach(section => {
-            html += renderConfigSection(section, 'model');
+        html += '<div class="config-cards-grid">';
+        modelSections.forEach((section, index) => {
+            html += renderModelCard(section, index);
         });
         html += '</div>';
     } else {
         html += '<div class="alert alert-info">暂无模型配置</div>';
     }
+    
+    html += '<div class="add-new-section">';
+    html += '<button class="btn btn-primary" onclick="addNewModel()">+ 添加新模型</button>';
+    html += '</div>';
     html += '</div>';
     
     // 组件模型配置
     html += '<div id="model-tasks-content" class="model-subcontent">';
-    const taskSections = config.sections.filter(s => s.name.startsWith('model_task_config'));
+    html += '<div class="config-section-header">';
+    html += '<h3>组件模型配置</h3>';
+    html += '</div>';
+    
+    // 查找所有组件模型配置节 - 改进匹配逻辑
+    const taskSections = config.sections.filter(s => {
+        // 匹配类似 model_task_config.xxx 或者包含 model_task_config 的节
+        return s.name && (
+            s.name.startsWith('model_task_config') ||
+            s.name.includes('model_task_config') ||
+            (s.fields && s.fields.some(f => 
+                f.name === 'model_list' || 
+                f.name === 'temperature' || 
+                f.name === 'max_tokens'
+            ))
+        );
+    });
+    
+    console.log('找到的组件模型配置节:', taskSections.map(s => s.name)); // 调试日志
+    
     if (taskSections.length > 0) {
-        html += '<div class="config-sections compact">';
+        html += '<div class="config-cards-grid">';
         taskSections.forEach(section => {
-            html += renderConfigSection(section, 'model');
+            html += renderTaskConfigCard(section);
         });
         html += '</div>';
     } else {
         html += '<div class="alert alert-info">暂无组件模型配置</div>';
+        // 显示所有可用的节以便调试
+        html += '<div class="debug-info" style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 0.5rem;">';
+        html += '<strong>调试信息 - 所有配置节:</strong><br>';
+        config.sections.forEach(s => {
+            html += `- ${s.name}<br>`;
+        });
+        html += '</div>';
     }
     html += '</div>';
     
@@ -956,15 +1010,140 @@ function switchModelSubTab(tabName) {
     if (activeContent) activeContent.classList.add('active');
 }
 
+// 渲染API提供商卡片
+function renderProviderCard(section, index) {
+    const fields = section.fields || [];
+    const nameField = fields.find(f => f.name === 'name');
+    const baseUrlField = fields.find(f => f.name === 'base_url');
+    const clientTypeField = fields.find(f => f.name === 'client_type');
+    
+    const providerName = nameField ? nameField.value : `提供商 ${index + 1}`;
+    const baseUrl = baseUrlField ? baseUrlField.value : '';
+    const clientType = clientTypeField ? clientTypeField.value : 'openai';
+    
+    let html = '<div class="config-card">';
+    
+    // 删除按钮
+    html += `<button class="config-card-delete" onclick="removeProvider(${index})" title="删除提供商">×</button>`;
+    
+    // 标题
+    html += `<div class="config-card-title">
+        ${providerName}
+        <button class="config-card-expand" onclick="toggleProviderCard(${index})">
+            <span class="toggle-icon">详细配置</span>
+        </button>
+    </div>`;
+    
+    // 信息
+    html += `<div class="config-card-info">
+        <div class="info-item">BaseURL: ${baseUrl}</div>
+        <div class="info-item">客户端类型: ${clientType}</div>
+    </div>`;
+    
+    // 详细配置（默认隐藏）
+    html += `<div class="config-card-content" id="provider-card-${index}" style="display: none;">`;
+    fields.forEach(field => {
+        html += renderConfigField(field, 'model', null);
+    });
+    html += '</div>';
+    
+    html += '</div>';
+    return html;
+}
+
+// 渲染模型卡片
+function renderModelCard(section, index) {
+    const fields = section.fields || [];
+    const nameField = fields.find(f => f.name === 'name');
+    const modelIdField = fields.find(f => f.name === 'model_identifier');
+    const providerField = fields.find(f => f.name === 'api_provider');
+    
+    const modelName = nameField ? nameField.value : `模型 ${index + 1}`;
+    const modelId = modelIdField ? modelIdField.value : '';
+    const provider = providerField ? providerField.value : '';
+    
+    let html = '<div class="config-card">';
+    
+    // 删除按钮
+    html += `<button class="config-card-delete" onclick="removeModel(${index})" title="删除模型">×</button>`;
+    
+    // 标题
+    html += `<div class="config-card-title">
+        ${modelName}
+        <button class="config-card-expand" onclick="toggleModelCard(${index})">
+            <span class="toggle-icon">详细配置</span>
+        </button>
+    </div>`;
+    
+    // 信息
+    html += `<div class="config-card-info">
+        <div class="info-item">模型ID: ${modelId}</div>
+        <div class="info-item">API提供商: ${provider}</div>
+    </div>`;
+    
+    // 详细配置（默认隐藏）
+    html += `<div class="config-card-content" id="model-card-${index}" style="display: none;">`;
+    fields.forEach(field => {
+        html += renderConfigField(field, 'model', null);
+    });
+    html += '</div>';
+    
+    html += '</div>';
+    return html;
+}
+
+// 渲染组件模型配置卡片
+function renderTaskConfigCard(section) {
+    const fields = section.fields || [];
+    const modelListField = fields.find(f => f.name === 'model_list');
+    const tempField = fields.find(f => f.name === 'temperature');
+    const tokensField = fields.find(f => f.name === 'max_tokens');
+    
+    const taskName = section.name.replace('model_task_config.', '');
+    const modelList = modelListField && Array.isArray(modelListField.value) ? 
+        modelListField.value.join(', ') : 
+        (modelListField ? String(modelListField.value) : '');
+    const temperature = tempField ? tempField.value : '';
+    const maxTokens = tokensField ? tokensField.value : '';
+    
+    let html = '<div class="config-card">';
+    
+    // 标题
+    html += `<div class="config-card-title">
+        ${taskName}
+        <button class="config-card-expand" onclick="toggleTaskCard('${taskName}')">
+            <span class="toggle-icon">详细配置</span>
+        </button>
+    </div>`;
+    
+    // 信息
+    html += `<div class="config-card-info">
+        <div class="info-item">模型列表: ${modelList}</div>
+        <div class="info-item">温度: ${temperature}</div>
+        <div class="info-item">最大Token: ${maxTokens}</div>
+    </div>`;
+    
+    // 详细配置（默认隐藏）
+    html += `<div class="config-card-content" id="task-card-${taskName}" style="display: none;">`;
+    fields.forEach(field => {
+        html += renderConfigField(field, 'model', null);
+    });
+    html += '</div>';
+    
+    html += '</div>';
+    return html;
+}
+
 function renderPluginConfigs(plugins) {
     if (!plugins || plugins.length === 0) return '<div class="alert alert-info">暂无插件配置</div>';
     
     let html = '<div class="plugin-config-container">';
     
-    // 创建插件选择器
-    html += '<div class="plugin-selector">';
+    // 创建插件选择器 - 使用主题一致的样式
+    html += '<div class="plugin-selector-wrapper">';
+    html += '<div class="form-group">';
     html += '<label for="plugin-select" class="form-label">选择插件:</label>';
-    html += '<select id="plugin-select" onchange="switchPlugin(this.value)" class="form-control">';
+    html += '<select id="plugin-select" onchange="switchPlugin(this.value)" class="form-control theme-select">';
     html += '<option value="">请选择插件...</option>';
     
     plugins.forEach((plugin, index) => {
@@ -973,6 +1152,7 @@ function renderPluginConfigs(plugins) {
     });
     
     html += '</select>';
+    html += '</div>';
     html += '</div>';
     
     // 插件配置内容容器
@@ -1087,15 +1267,47 @@ function createFieldInput(field, fieldId, configType, pluginIndex = null) {
                     class="form-control compact"${field.field_type === 'float' ? ' step="0.1"' : ''}>`;
         
         case 'array':
-            const arrayValue = Array.isArray(field.value) ? field.value.join(', ') : '';
+            let arrayValue = '';
+            if (Array.isArray(field.value)) {
+                arrayValue = field.value.map(v => typeof v === 'string' ? v : JSON.stringify(v)).join(', ');
+            } else if (field.value) {
+                arrayValue = String(field.value);
+            }
             return `<input type="text" id="${fieldId}" value="${arrayValue}" 
                     onchange="${onChangeHandler}" 
                     placeholder="用逗号分隔多个值" 
                     class="form-control compact">`;
         
+        case 'object':
+            let objectValue = '';
+            if (field.value && typeof field.value === 'object') {
+                try {
+                    objectValue = JSON.stringify(field.value, null, 2);
+                } catch (e) {
+                    objectValue = String(field.value);
+                }
+            } else {
+                objectValue = String(field.value || '');
+            }
+            return `<textarea id="${fieldId}" onchange="${onChangeHandler}" 
+                    class="form-control compact" rows="3" 
+                    placeholder="JSON格式对象">${objectValue}</textarea>`;
+        
         case 'string':
         default:
-            const stringValue = typeof field.value === 'string' ? field.value : String(field.value);
+            let stringValue = '';
+            if (field.value !== null && field.value !== undefined) {
+                if (typeof field.value === 'object') {
+                    try {
+                        stringValue = JSON.stringify(field.value);
+                    } catch (e) {
+                        stringValue = String(field.value);
+                    }
+                } else {
+                    stringValue = String(field.value);
+                }
+            }
+            
             if (stringValue.includes('\n')) {
                 return `<textarea id="${fieldId}" onchange="${onChangeHandler}" 
                         class="form-control compact" rows="3">${stringValue}</textarea>`;
@@ -1306,6 +1518,173 @@ function createBackToTopButton() {
     });
 }
 
+// 卡片操作函数
+function toggleProviderCard(index) {
+    const card = document.getElementById(`provider-card-${index}`);
+    const icon = document.querySelector(`[onclick="toggleProviderCard(${index})"] .toggle-icon`);
+    if (card) {
+        if (card.style.display === 'none') {
+            card.style.display = 'block';
+            icon.textContent = '收起配置';
+        } else {
+            card.style.display = 'none';
+            icon.textContent = '详细配置';
+        }
+    }
+}
+
+function toggleModelCard(index) {
+    const card = document.getElementById(`model-card-${index}`);
+    const icon = document.querySelector(`[onclick="toggleModelCard(${index})"] .toggle-icon`);
+    if (card) {
+        if (card.style.display === 'none') {
+            card.style.display = 'block';
+            icon.textContent = '收起配置';
+        } else {
+            card.style.display = 'none';
+            icon.textContent = '详细配置';
+        }
+    }
+}
+
+function toggleTaskCard(taskName) {
+    const card = document.getElementById(`task-card-${taskName}`);
+    const icon = document.querySelector(`[onclick="toggleTaskCard('${taskName}')"] .toggle-icon`);
+    if (card) {
+        if (card.style.display === 'none') {
+            card.style.display = 'block';
+            icon.textContent = '收起配置';
+        } else {
+            card.style.display = 'none';
+            icon.textContent = '详细配置';
+        }
+    }
+}
+
+function addNewProvider() {
+    if (!currentConfig || !currentConfig.model) {
+        showNotification('配置未加载，无法添加提供商', 'error');
+        return;
+    }
+    
+    // 创建一个新的API提供商配置
+    const newProvider = {
+        name: `新提供商${Date.now()}`,
+        base_url: "https://api.example.com/v1",
+        api_key: "your-api-key-here",
+        client_type: "openai",
+        max_retry: 2,
+        timeout: 30,
+        retry_interval: 10
+    };
+    
+    // 添加到currentConfig中
+    const newSection = {
+        name: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]`,
+        fields: [
+            { name: 'name', value: newProvider.name, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'base_url', value: newProvider.base_url, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'api_key', value: newProvider.api_key, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'client_type', value: newProvider.client_type, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'max_retry', value: newProvider.max_retry, field_type: 'integer', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'timeout', value: newProvider.timeout, field_type: 'integer', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'retry_interval', value: newProvider.retry_interval, field_type: 'integer', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` }
+        ]
+    };
+    
+    currentConfig.model.sections.push(newSection);
+    
+    // 重新渲染配置
+    renderConfigs();
+    showNotification('新API提供商已添加', 'success');
+}
+
+function addNewModel() {
+    if (!currentConfig || !currentConfig.model) {
+        showNotification('配置未加载，无法添加模型', 'error');
+        return;
+    }
+    
+    // 创建一个新的模型配置
+    const newModel = {
+        model_identifier: "example/model",
+        name: `新模型${Date.now()}`,
+        api_provider: "DeepSeek",
+        price_in: 0.0,
+        price_out: 0.0
+    };
+    
+    // 添加到currentConfig中
+    const newSection = {
+        name: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]`,
+        fields: [
+            { name: 'model_identifier', value: newModel.model_identifier, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'name', value: newModel.name, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'api_provider', value: newModel.api_provider, field_type: 'string', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'price_in', value: newModel.price_in, field_type: 'float', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` },
+            { name: 'price_out', value: newModel.price_out, field_type: 'float', section: `[${currentConfig.model.sections.filter(s => s.name.match(/^\[\d+\]$/)).length}]` }
+        ]
+    };
+    
+    currentConfig.model.sections.push(newSection);
+    
+    // 重新渲染配置
+    renderConfigs();
+    showNotification('新模型已添加', 'success');
+}
+
+function removeProvider(index) {
+    if (confirm('确定要删除这个API提供商吗？')) {
+        if (!currentConfig || !currentConfig.model) {
+            showNotification('配置未加载，无法删除提供商', 'error');
+            return;
+        }
+        
+        // 查找要删除的节
+        const providerSections = currentConfig.model.sections.filter(s => 
+            s.name.match(/^\[\d+\]$/) && 
+            s.fields && 
+            s.fields.some(f => f.name === 'name' || f.name === 'base_url')
+        );
+        
+        if (index < providerSections.length) {
+            const sectionToRemove = providerSections[index];
+            const sectionIndex = currentConfig.model.sections.indexOf(sectionToRemove);
+            if (sectionIndex > -1) {
+                currentConfig.model.sections.splice(sectionIndex, 1);
+                renderConfigs();
+                showNotification('API提供商已删除', 'success');
+            }
+        }
+    }
+}
+
+function removeModel(index) {
+    if (confirm('确定要删除这个模型吗？')) {
+        if (!currentConfig || !currentConfig.model) {
+            showNotification('配置未加载，无法删除模型', 'error');
+            return;
+        }
+        
+        // 查找要删除的节
+        const modelSections = currentConfig.model.sections.filter(s => 
+            s.name.match(/^\[\d+\]$/) && 
+            s.fields && 
+            s.fields.some(f => f.name === 'model_identifier' || f.name === 'api_provider')
+        );
+        
+        if (index < modelSections.length) {
+            const sectionToRemove = modelSections[index];
+            const sectionIndex = currentConfig.model.sections.indexOf(sectionToRemove);
+            if (sectionIndex > -1) {
+                currentConfig.model.sections.splice(sectionIndex, 1);
+                renderConfigs();
+                showNotification('模型已删除', 'success');
+            }
+        }
+    }
+}
+
 // 导出函数供全局使用
 window.showSection = showSection;
 window.toggleService = toggleService;
@@ -1322,3 +1701,10 @@ window.undoConfigChanges = undoConfigChanges;
 window.switchModelSubTab = switchModelSubTab;
 window.switchPlugin = switchPlugin;
 window.onConfigFieldChange = onConfigFieldChange;
+window.toggleProviderCard = toggleProviderCard;
+window.toggleModelCard = toggleModelCard;
+window.toggleTaskCard = toggleTaskCard;
+window.addNewProvider = addNewProvider;
+window.addNewModel = addNewModel;
+window.removeProvider = removeProvider;
+window.removeModel = removeModel;
