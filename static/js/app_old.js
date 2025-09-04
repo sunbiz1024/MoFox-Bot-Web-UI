@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', function() {
     startStatusPolling();
     updateStatusIndicators();
     initWebSocket();
-    createBackToTopButton();
 });
 
 // 初始化WebSocket连接
@@ -210,7 +209,7 @@ function showSection(sectionName) {
     currentSection = sectionName;
     
     // 如果切换到配置管理页面，自动加载配置
-    if (sectionName === 'config' && !isConfigLoaded) {
+    if (sectionName === 'config' && !configData.bot) {
         loadConfigs();
     }
 }
@@ -513,6 +512,21 @@ function debounce(func, wait) {
     };
 }
 
+// 导出函数供全局使用
+window.showSection = showSection;
+window.toggleService = toggleService;
+window.showLogs = showLogs;
+
+// 导出函数供全局使用
+window.showSection = showSection;
+window.toggleService = toggleService;
+window.showLogs = showLogs;
+window.clearLogs = clearLogs;
+window.changeTheme = changeTheme;
+window.saveWebSettings = saveWebSettings;
+window.resetWebSettings = resetWebSettings;
+window.exportWebSettings = exportWebSettings;
+
 // 网页设置相关功能
 
 // 网页设置配置
@@ -729,22 +743,14 @@ function getConfigOrder(sectionName) {
 // 加载所有配置
 async function loadConfigs() {
     try {
-        console.log('loadConfigs: Starting to load configurations...');
         showConfigLoading(true);
         showNotification('正在加载配置...', 'info');
         
-        console.log('loadConfigs: Making API requests...');
         const [botResponse, modelResponse, pluginResponse] = await Promise.all([
             fetch('/api/config/bot'),
             fetch('/api/config/model'),
             fetch('/api/config/plugins')
         ]);
-        
-        console.log('loadConfigs: API responses received:', {
-            bot: botResponse.ok,
-            model: modelResponse.ok,
-            plugin: pluginResponse.ok
-        });
         
         if (!botResponse.ok || !modelResponse.ok || !pluginResponse.ok) {
             throw new Error('Failed to load configurations');
@@ -753,12 +759,6 @@ async function loadConfigs() {
         const botResult = await botResponse.json();
         const modelResult = await modelResponse.json();
         const pluginResult = await pluginResponse.json();
-        
-        console.log('loadConfigs: API results parsed:', {
-            botSuccess: botResult.success,
-            modelSuccess: modelResult.success,
-            pluginSuccess: pluginResult.success
-        });
         
         if (!botResult.success || !modelResult.success || !pluginResult.success) {
             throw new Error('配置加载失败');
@@ -772,7 +772,6 @@ async function loadConfigs() {
         originalConfig = JSON.parse(JSON.stringify(currentConfig)); // 深拷贝
         isConfigLoaded = true;
         
-        console.log('loadConfigs: Config loaded successfully, calling renderConfigs...');
         renderConfigs();
         showConfigActions(true);
         showNotification('配置加载完成', 'success');
@@ -780,22 +779,8 @@ async function loadConfigs() {
     } catch (error) {
         console.error('Error loading configs:', error);
         showNotification('配置加载失败: ' + error.message, 'error');
-        
-        // 在所有配置内容区域显示错误
-        const errorMessage = '<div class="alert alert-error">配置加载失败: ' + error.message + '</div>';
-        const botContent = document.getElementById('bot-config-content');
-        const modelContent = document.getElementById('model-config-content');
-        const pluginContent = document.getElementById('plugin-config-content');
-        
-        console.log('loadConfigs: Error handling - elements found:', {
-            botContent: !!botContent,
-            modelContent: !!modelContent,
-            pluginContent: !!pluginContent
-        });
-        
-        if (botContent) botContent.innerHTML = errorMessage;
-        if (modelContent) modelContent.innerHTML = errorMessage;
-        if (pluginContent) pluginContent.innerHTML = errorMessage;
+        document.getElementById('config-content').innerHTML = 
+            '<div class="alert alert-error">配置加载失败: ' + error.message + '</div>';
     } finally {
         showConfigLoading(false);
     }
@@ -810,56 +795,21 @@ function showConfigLoading(show) {
 
 function showConfigActions(show) {
     const actionsEl = document.getElementById('config-actions');
-    const defaultHeaderEl = document.getElementById('config-default-header');
-    
     if (actionsEl) {
         actionsEl.style.display = show ? 'flex' : 'none';
-    }
-    
-    if (defaultHeaderEl) {
-        defaultHeaderEl.style.display = show ? 'none' : 'flex';
     }
 }
 
 function renderConfigs() {
-    if (!currentConfig) {
-        console.error('renderConfigs: currentConfig is null');
-        return;
-    }
-    
-    console.log('renderConfigs: Starting to render configs');
+    if (!currentConfig) return;
     
     const botContent = renderBotConfig(currentConfig.bot);
     const modelContent = renderModelConfig(currentConfig.model);
     const pluginContent = renderPluginConfigs(currentConfig.plugins);
     
-    const botEl = document.getElementById('bot-config-content');
-    const modelEl = document.getElementById('model-config-content');
-    const pluginEl = document.getElementById('plugin-config-content');
-    
-    console.log('renderConfigs: Elements found:', {
-        botEl: !!botEl,
-        modelEl: !!modelEl,
-        pluginEl: !!pluginEl
-    });
-    
-    if (botEl) {
-        botEl.innerHTML = botContent;
-    } else {
-        console.error('bot-config-content element not found');
-    }
-    
-    if (modelEl) {
-        modelEl.innerHTML = modelContent;
-    } else {
-        console.error('model-config-content element not found');
-    }
-    
-    if (pluginEl) {
-        pluginEl.innerHTML = pluginContent;
-    } else {
-        console.error('plugin-config-content element not found');
-    }
+    document.getElementById('bot-config-content').innerHTML = botContent;
+    document.getElementById('model-config-content').innerHTML = modelContent;
+    document.getElementById('plugin-config-content').innerHTML = pluginContent;
 }
 
 function renderBotConfig(config) {
@@ -945,15 +895,13 @@ function switchModelSubTab(tabName) {
     document.querySelectorAll('.model-subtab').forEach(tab => {
         tab.classList.remove('active');
     });
-    const activeTab = document.querySelector(`.model-subtab[onclick="switchModelSubTab('${tabName}')"]`);
-    if (activeTab) activeTab.classList.add('active');
+    document.querySelector(`.model-subtab[onclick="switchModelSubTab('${tabName}')"]`).classList.add('active');
     
     // 切换内容显示
     document.querySelectorAll('.model-subcontent').forEach(content => {
         content.classList.remove('active');
     });
-    const activeContent = document.getElementById(`model-${tabName}-content`);
-    if (activeContent) activeContent.classList.add('active');
+    document.getElementById(`model-${tabName}-content`).classList.add('active');
 }
 
 function renderPluginConfigs(plugins) {
@@ -1306,19 +1254,327 @@ function createBackToTopButton() {
     });
 }
 
-// 导出函数供全局使用
-window.showSection = showSection;
-window.toggleService = toggleService;
-window.showLogs = showLogs;
-window.clearLogs = clearLogs;
-window.changeTheme = changeTheme;
-window.saveWebSettings = saveWebSettings;
-window.resetWebSettings = resetWebSettings;
-window.exportWebSettings = exportWebSettings;
-window.showConfigTab = showConfigTab;
-window.loadConfigs = loadConfigs;
-window.saveCurrentConfig = saveCurrentConfig;
-window.undoConfigChanges = undoConfigChanges;
-window.switchModelSubTab = switchModelSubTab;
-window.switchPlugin = switchPlugin;
-window.onConfigFieldChange = onConfigFieldChange;
+// 页面加载完成后创建回到顶部按钮
+document.addEventListener('DOMContentLoaded', () => {
+    createBackToTopButton();
+});
+function createConfigField(field, configType, sectionName) {
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'config-field';
+    
+    const label = document.createElement('div');
+    label.className = 'config-field-label';
+    label.innerHTML = `
+        <span>${field.name}</span>
+        ${field.comment ? `<span class="config-field-comment">// ${field.comment}</span>` : ''}
+    `;
+    
+    const inputContainer = document.createElement('div');
+    let input;
+    
+    switch (field.field_type) {
+        case 'boolean':
+            input = document.createElement('select');
+            input.className = 'config-field-input';
+            input.innerHTML = `
+                <option value="true" ${field.value === true ? 'selected' : ''}>true</option>
+                <option value="false" ${field.value === false ? 'selected' : ''}>false</option>
+            `;
+            break;
+            
+        case 'integer':
+        case 'float':
+            input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'config-field-input';
+            input.value = field.value;
+            if (field.field_type === 'float') {
+                input.step = '0.1';
+            }
+            break;
+            
+        case 'array':
+            return createArrayField(field, configType, sectionName);
+            
+        case 'string':
+        default:
+            input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'config-field-input';
+            input.value = field.value || '';
+            break;
+    }
+    
+    // 添加变更监听
+    input.addEventListener('change', () => {
+        markConfigModified();
+        updateFieldValue(configType, sectionName, field.name, input.value, field.field_type);
+    });
+    
+    inputContainer.appendChild(input);
+    fieldDiv.appendChild(label);
+    fieldDiv.appendChild(inputContainer);
+    
+    return fieldDiv;
+}
+
+// 创建数组字段
+function createArrayField(field, configType, sectionName) {
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'config-field';
+    
+    const label = document.createElement('div');
+    label.className = 'config-field-label';
+    label.innerHTML = `
+        <span>${field.name}</span>
+        ${field.comment ? `<span class="config-field-comment">// ${field.comment}</span>` : ''}
+    `;
+    
+    const arrayContainer = document.createElement('div');
+    arrayContainer.className = 'config-array-container';
+    
+    const values = Array.isArray(field.value) ? field.value : [];
+    
+    values.forEach((value, index) => {
+        const itemDiv = createArrayItem(value, index, configType, sectionName, field.name);
+        arrayContainer.appendChild(itemDiv);
+    });
+    
+    const addButton = document.createElement('button');
+    addButton.className = 'config-array-add';
+    addButton.textContent = '添加项目';
+    addButton.addEventListener('click', () => {
+        const newItemDiv = createArrayItem('', values.length, configType, sectionName, field.name);
+        arrayContainer.insertBefore(newItemDiv, addButton);
+        markConfigModified();
+    });
+    
+    fieldDiv.appendChild(label);
+    fieldDiv.appendChild(arrayContainer);
+    arrayContainer.appendChild(addButton);
+    
+    return fieldDiv;
+}
+
+// 创建数组项
+function createArrayItem(value, index, configType, sectionName, fieldName) {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'config-array-item';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'config-field-input';
+    input.value = value || '';
+    input.addEventListener('change', () => {
+        markConfigModified();
+        updateArrayFieldValue(configType, sectionName, fieldName, index, input.value);
+    });
+    
+    const removeButton = document.createElement('button');
+    removeButton.className = 'config-array-remove';
+    removeButton.textContent = '删除';
+    removeButton.addEventListener('click', () => {
+        itemDiv.remove();
+        markConfigModified();
+        removeArrayItem(configType, sectionName, fieldName, index);
+    });
+    
+    itemDiv.appendChild(input);
+    itemDiv.appendChild(removeButton);
+    
+    return itemDiv;
+}
+
+// 创建插件配置区段
+function createPluginConfigSection(plugin) {
+    const pluginDiv = document.createElement('div');
+    pluginDiv.className = 'plugin-config-item';
+    
+    const header = document.createElement('div');
+    header.className = 'plugin-config-header';
+    header.innerHTML = `
+        <div class="flex items-center justify-between w-full">
+            <span class="font-medium">${plugin.name}</span>
+            <button class="plugin-config-toggle">−</button>
+        </div>
+    `;
+    
+    const content = document.createElement('div');
+    content.className = 'config-section-content';
+    
+    plugin.config.sections.forEach(section => {
+        const sectionDiv = createConfigSection(section, 'plugin');
+        content.appendChild(sectionDiv);
+    });
+    
+    // 添加折叠功能
+    const toggleButton = header.querySelector('.plugin-config-toggle');
+    toggleButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isCollapsed = content.style.display === 'none';
+        content.style.display = isCollapsed ? 'block' : 'none';
+        toggleButton.textContent = isCollapsed ? '−' : '+';
+    });
+    
+    pluginDiv.appendChild(header);
+    pluginDiv.appendChild(content);
+    
+    return pluginDiv;
+}
+
+// 更新字段值
+function updateFieldValue(configType, sectionName, fieldName, value, fieldType) {
+    const config = configData[configType];
+    if (!config) return;
+    
+    const section = config.sections.find(s => s.name === sectionName);
+    if (!section) return;
+    
+    const field = section.fields.find(f => f.name === fieldName);
+    if (!field) return;
+    
+    // 类型转换
+    switch (fieldType) {
+        case 'boolean':
+            field.value = value === 'true';
+            break;
+        case 'integer':
+            field.value = parseInt(value, 10);
+            break;
+        case 'float':
+            field.value = parseFloat(value);
+            break;
+        default:
+            field.value = value;
+            break;
+    }
+}
+
+// 更新数组字段值
+function updateArrayFieldValue(configType, sectionName, fieldName, index, value) {
+    const config = configData[configType];
+    if (!config) return;
+    
+    const section = config.sections.find(s => s.name === sectionName);
+    if (!section) return;
+    
+    const field = section.fields.find(f => f.name === fieldName);
+    if (!field || !Array.isArray(field.value)) return;
+    
+    field.value[index] = value;
+}
+
+// 删除数组项
+function removeArrayItem(configType, sectionName, fieldName, index) {
+    const config = configData[configType];
+    if (!config) return;
+    
+    const section = config.sections.find(s => s.name === sectionName);
+    if (!section) return;
+    
+    const field = section.fields.find(f => f.name === fieldName);
+    if (!field || !Array.isArray(field.value)) return;
+    
+    field.value.splice(index, 1);
+}
+
+// 标记配置已修改
+function markConfigModified() {
+    configModified = true;
+    const saveButton = document.getElementById('save-config-btn');
+    if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.classList.add('btn-warning');
+        saveButton.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            保存配置 (已修改)
+        `;
+    }
+}
+
+// 保存当前配置
+async function saveCurrentConfig() {
+    if (!configModified) {
+        showNotification('配置未修改', 'info');
+        return;
+    }
+    
+    try {
+        const config = configData[currentConfigTab];
+        if (!config) {
+            throw new Error('找不到要保存的配置');
+        }
+        
+        const response = await fetch('/api/config/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_path: config.path,
+                config: config
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            configModified = false;
+            const saveButton = document.getElementById('save-config-btn');
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.classList.remove('btn-warning');
+                saveButton.innerHTML = `
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    保存配置
+                `;
+            }
+            showNotification('配置保存成功', 'success');
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('保存配置失败:', error);
+        showNotification('保存配置失败: ' + error.message, 'error');
+    }
+}
+
+// 刷新配置
+async function refreshConfigs() {
+    configData = { bot: null, model: null, plugins: null };
+    configModified = false;
+    
+    const saveButton = document.getElementById('save-config-btn');
+    if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.classList.remove('btn-warning');
+    }
+    
+    await loadConfigs();
+}
+
+// 通知显示函数
+function showNotification(message, type = 'info') {
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} fixed top-4 right-4 z-50 max-w-sm`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <span>${message}</span>
+            <button class="ml-auto btn btn-sm btn-ghost" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // 3秒后自动移除
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 3000);
+}

@@ -9,6 +9,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
 use tokio::sync::{RwLock, broadcast};
@@ -20,9 +21,11 @@ use tracing::{error, info};
 
 pub mod models;
 pub mod services;
+pub mod config_manager;
 
 use models::*;
 use services::*;
+use config_manager::*;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -30,6 +33,7 @@ pub struct AppState {
     pub bot_status: Arc<RwLock<BotStatus>>,
     pub log_service: Arc<LogService>,
     pub log_broadcaster: Arc<broadcast::Sender<String>>,
+    pub config_manager: Arc<ConfigManager>,
 }
 
 pub async fn create_app() -> Result<Router> {
@@ -46,6 +50,7 @@ pub async fn create_app() -> Result<Router> {
         bot_status: Arc::new(RwLock::new(BotStatus::default())),
         log_service: Arc::new(LogService::with_broadcaster(log_tx.clone())),
         log_broadcaster: Arc::new(log_tx),
+        config_manager: Arc::new(ConfigManager::new()),
     };
 
     // 创建路由
@@ -58,6 +63,10 @@ pub async fn create_app() -> Result<Router> {
         .route("/api/stop/:service", post(stop_service))
         .route("/api/check/:service", get(check_service_status))
         .route("/api/log", post(receive_service_log))  // 新增：接收服务日志
+        .route("/api/config/bot", get(get_bot_config))
+        .route("/api/config/model", get(get_model_config))
+        .route("/api/config/plugins", get(get_plugin_configs))
+        .route("/api/config/save", post(save_config))
         .route("/ws", get(websocket_handler))
         .nest_service("/static", ServeDir::new("static"))
         .layer(
@@ -377,4 +386,48 @@ async fn receive_service_log(
     let _ = state.log_broadcaster.send(log_json.to_string());
     
     Json(serde_json::json!({"status": "ok"}))
+}
+
+// 配置管理 API
+async fn get_bot_config(State(state): State<AppState>) -> Json<serde_json::Value> {
+    match state.config_manager.get_bot_config().await {
+        Ok(config) => Json(serde_json::json!({"success": true, "config": config})),
+        Err(e) => Json(serde_json::json!({"success": false, "error": e.to_string()}))
+    }
+}
+
+async fn get_model_config(State(state): State<AppState>) -> Json<serde_json::Value> {
+    match state.config_manager.get_model_config().await {
+        Ok(config) => Json(serde_json::json!({"success": true, "config": config})),
+        Err(e) => Json(serde_json::json!({"success": false, "error": e.to_string()}))
+    }
+}
+
+async fn get_plugin_configs(State(state): State<AppState>) -> Json<serde_json::Value> {
+    match state.config_manager.get_plugin_configs().await {
+        Ok(configs) => Json(serde_json::json!({"success": true, "plugins": configs})),
+        Err(e) => Json(serde_json::json!({"success": false, "error": e.to_string()}))
+    }
+}
+
+#[derive(Deserialize)]
+struct SaveConfigRequest {
+    file_path: String,
+    config: ConfigFile,
+}
+
+async fn save_config(
+    State(state): State<AppState>,
+    Json(req): Json<SaveConfigRequest>,
+) -> Json<serde_json::Value> {
+    match state.config_manager.save_config(&req.file_path, &req.config).await {
+        Ok(_) => {
+            state.log_service.add_log("ui", "INFO", &format!("配置文件已保存: {}", req.file_path)).await;
+            Json(serde_json::json!({"success": true, "message": "配置保存成功"}))
+        }
+        Err(e) => {
+            state.log_service.add_log("ui", "ERROR", &format!("保存配置文件失败: {}", e)).await;
+            Json(serde_json::json!({"success": false, "error": e.to_string()}))
+        }
+    }
 }

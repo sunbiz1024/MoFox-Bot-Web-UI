@@ -729,22 +729,14 @@ function getConfigOrder(sectionName) {
 // 加载所有配置
 async function loadConfigs() {
     try {
-        console.log('loadConfigs: Starting to load configurations...');
         showConfigLoading(true);
         showNotification('正在加载配置...', 'info');
         
-        console.log('loadConfigs: Making API requests...');
         const [botResponse, modelResponse, pluginResponse] = await Promise.all([
             fetch('/api/config/bot'),
             fetch('/api/config/model'),
             fetch('/api/config/plugins')
         ]);
-        
-        console.log('loadConfigs: API responses received:', {
-            bot: botResponse.ok,
-            model: modelResponse.ok,
-            plugin: pluginResponse.ok
-        });
         
         if (!botResponse.ok || !modelResponse.ok || !pluginResponse.ok) {
             throw new Error('Failed to load configurations');
@@ -753,12 +745,6 @@ async function loadConfigs() {
         const botResult = await botResponse.json();
         const modelResult = await modelResponse.json();
         const pluginResult = await pluginResponse.json();
-        
-        console.log('loadConfigs: API results parsed:', {
-            botSuccess: botResult.success,
-            modelSuccess: modelResult.success,
-            pluginSuccess: pluginResult.success
-        });
         
         if (!botResult.success || !modelResult.success || !pluginResult.success) {
             throw new Error('配置加载失败');
@@ -772,7 +758,6 @@ async function loadConfigs() {
         originalConfig = JSON.parse(JSON.stringify(currentConfig)); // 深拷贝
         isConfigLoaded = true;
         
-        console.log('loadConfigs: Config loaded successfully, calling renderConfigs...');
         renderConfigs();
         showConfigActions(true);
         showNotification('配置加载完成', 'success');
@@ -780,22 +765,10 @@ async function loadConfigs() {
     } catch (error) {
         console.error('Error loading configs:', error);
         showNotification('配置加载失败: ' + error.message, 'error');
-        
-        // 在所有配置内容区域显示错误
-        const errorMessage = '<div class="alert alert-error">配置加载失败: ' + error.message + '</div>';
-        const botContent = document.getElementById('bot-config-content');
-        const modelContent = document.getElementById('model-config-content');
-        const pluginContent = document.getElementById('plugin-config-content');
-        
-        console.log('loadConfigs: Error handling - elements found:', {
-            botContent: !!botContent,
-            modelContent: !!modelContent,
-            pluginContent: !!pluginContent
-        });
-        
-        if (botContent) botContent.innerHTML = errorMessage;
-        if (modelContent) modelContent.innerHTML = errorMessage;
-        if (pluginContent) pluginContent.innerHTML = errorMessage;
+        const configContent = document.getElementById('config-content');
+        if (configContent) {
+            configContent.innerHTML = '<div class="alert alert-error">配置加载失败: ' + error.message + '</div>';
+        }
     } finally {
         showConfigLoading(false);
     }
@@ -810,24 +783,13 @@ function showConfigLoading(show) {
 
 function showConfigActions(show) {
     const actionsEl = document.getElementById('config-actions');
-    const defaultHeaderEl = document.getElementById('config-default-header');
-    
     if (actionsEl) {
         actionsEl.style.display = show ? 'flex' : 'none';
-    }
-    
-    if (defaultHeaderEl) {
-        defaultHeaderEl.style.display = show ? 'none' : 'flex';
     }
 }
 
 function renderConfigs() {
-    if (!currentConfig) {
-        console.error('renderConfigs: currentConfig is null');
-        return;
-    }
-    
-    console.log('renderConfigs: Starting to render configs');
+    if (!currentConfig) return;
     
     const botContent = renderBotConfig(currentConfig.bot);
     const modelContent = renderModelConfig(currentConfig.model);
@@ -837,29 +799,9 @@ function renderConfigs() {
     const modelEl = document.getElementById('model-config-content');
     const pluginEl = document.getElementById('plugin-config-content');
     
-    console.log('renderConfigs: Elements found:', {
-        botEl: !!botEl,
-        modelEl: !!modelEl,
-        pluginEl: !!pluginEl
-    });
-    
-    if (botEl) {
-        botEl.innerHTML = botContent;
-    } else {
-        console.error('bot-config-content element not found');
-    }
-    
-    if (modelEl) {
-        modelEl.innerHTML = modelContent;
-    } else {
-        console.error('model-config-content element not found');
-    }
-    
-    if (pluginEl) {
-        pluginEl.innerHTML = pluginContent;
-    } else {
-        console.error('plugin-config-content element not found');
-    }
+    if (botEl) botEl.innerHTML = botContent;
+    if (modelEl) modelEl.innerHTML = modelContent;
+    if (pluginEl) pluginEl.innerHTML = pluginContent;
 }
 
 function renderBotConfig(config) {
