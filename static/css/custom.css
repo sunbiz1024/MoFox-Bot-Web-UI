@@ -305,6 +305,32 @@
     border-top: 1px solid var(--accent);
 }
 
+/* 插件卡片特有样式 */
+.plugin-card {
+    position: relative;
+}
+
+.plugin-cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+}
+
+.plugin-config .config-section {
+    background: transparent;
+    border: 1px solid var(--accent);
+    margin-bottom: 0.75rem;
+}
+
+.plugin-config .section-header {
+    background: var(--accent);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem 0.25rem 0 0;
+}
+
+.plugin-config .section-fields {
+    padding: 0.75rem;
+}
+
 .config-section-header {
     display: flex;
     justify-content: space-between;

@@ -116,14 +116,52 @@ impl ConfigManager {
         
         if let toml::Value::Table(table) = parsed {
             for (section_name, section_value) in table {
-                let section_comment = self.extract_section_comment(content, section_name);
-                let fields = self.extract_fields_from_section(content, section_name, section_value)?;
-                
-                sections.push(ConfigSection {
-                    name: section_name.clone(),
-                    fields,
-                    comment: section_comment,
-                });
+                match section_value {
+                    toml::Value::Array(arr) => {
+                        // 处理数组类型的section (如 [[api_providers]], [[models]])
+                        for (index, item) in arr.iter().enumerate() {
+                            if let toml::Value::Table(item_table) = item {
+                                let individual_section_name = format!("{}[{}]", section_name, index);
+                                let section_comment = if index == 0 {
+                                    self.extract_section_comment(content, section_name)
+                                } else {
+                                    None
+                                };
+                                
+                                let mut fields = Vec::new();
+                                for (field_name, field_value) in item_table {
+                                    let comment = self.extract_field_comment(content, section_name, field_name);
+                                    let field_type = self.determine_field_type(field_value);
+                                    
+                                    fields.push(ConfigField {
+                                        name: field_name.clone(),
+                                        value: field_value.clone(),
+                                        field_type,
+                                        comment,
+                                        section: individual_section_name.clone(),
+                                    });
+                                }
+                                
+                                sections.push(ConfigSection {
+                                    name: individual_section_name,
+                                    fields,
+                                    comment: section_comment,
+                                });
+                            }
+                        }
+                    }
+                    _ => {
+                        // 处理普通section
+                        let section_comment = self.extract_section_comment(content, section_name);
+                        let fields = self.extract_fields_from_section(content, section_name, section_value)?;
+                        
+                        sections.push(ConfigSection {
+                            name: section_name.clone(),
+                            fields,
+                            comment: section_comment,
+                        });
+                    }
+                }
             }
         }
         
@@ -146,25 +184,6 @@ impl ConfigManager {
                         comment,
                         section: section_name.to_string(),
                     });
-                }
-            }
-            toml::Value::Array(arr) => {
-                // 处理数组类型的section (如 [[api_providers]])
-                for (index, item) in arr.iter().enumerate() {
-                    if let toml::Value::Table(table) = item {
-                        for (field_name, field_value) in table {
-                            let comment = self.extract_field_comment(content, section_name, field_name);
-                            let field_type = self.determine_field_type(field_value);
-                            
-                            fields.push(ConfigField {
-                                name: format!("[{}].{}", index, field_name),
-                                value: field_value.clone(),
-                                field_type,
-                                comment,
-                                section: section_name.to_string(),
-                            });
-                        }
-                    }
                 }
             }
             _ => {
@@ -244,23 +263,31 @@ impl ConfigManager {
 
     fn reconstruct_toml_with_comments(&self, config: &ConfigFile) -> Result<String> {
         let mut result = String::new();
+        let mut providers: Vec<&ConfigSection> = Vec::new();
+        let mut models: Vec<&ConfigSection> = Vec::new();
+        let mut other_sections: Vec<&ConfigSection> = Vec::new();
         
+        // 分类sections
         for section in &config.sections {
-            // 添加section注释
+            if section.name.starts_with("api_providers[") {
+                providers.push(section);
+            } else if section.name.starts_with("models[") {
+                models.push(section);
+            } else {
+                other_sections.push(section);
+            }
+        }
+        
+        // 处理非数组sections
+        for section in &other_sections {
             if let Some(comment) = &section.comment {
                 result.push_str(&format!("# {}\n", comment));
             }
             
-            // 添加section头
             if !section.name.is_empty() {
-                if section.name.contains('.') {
-                    result.push_str(&format!("[{}]\n", section.name));
-                } else {
-                    result.push_str(&format!("[{}]\n", section.name));
-                }
+                result.push_str(&format!("[{}]\n", section.name));
             }
             
-            // 添加字段
             for field in &section.fields {
                 if let Some(comment) = &field.comment {
                     result.push_str(&format!("# {}\n", comment));
@@ -271,6 +298,50 @@ impl ConfigManager {
             }
             
             result.push('\n');
+        }
+        
+        // 处理api_providers数组
+        if !providers.is_empty() {
+            if let Some(comment) = &providers[0].comment {
+                result.push_str(&format!("# {}\n", comment));
+            }
+            
+            for provider in &providers {
+                result.push_str("[[api_providers]]\n");
+                
+                for field in &provider.fields {
+                    if let Some(comment) = &field.comment {
+                        result.push_str(&format!("# {}\n", comment));
+                    }
+                    
+                    let value_str = self.value_to_toml_string(&field.value);
+                    result.push_str(&format!("{} = {}\n", field.name, value_str));
+                }
+                
+                result.push('\n');
+            }
+        }
+        
+        // 处理models数组
+        if !models.is_empty() {
+            if let Some(comment) = &models[0].comment {
+                result.push_str(&format!("# {}\n", comment));
+            }
+            
+            for model in &models {
+                result.push_str("[[models]]\n");
+                
+                for field in &model.fields {
+                    if let Some(comment) = &field.comment {
+                        result.push_str(&format!("# {}\n", comment));
+                    }
+                    
+                    let value_str = self.value_to_toml_string(&field.value);
+                    result.push_str(&format!("{} = {}\n", field.name, value_str));
+                }
+                
+                result.push('\n');
+            }
         }
         
         Ok(result)
