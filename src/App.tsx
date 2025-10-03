@@ -8,6 +8,7 @@ import { ThemeManager } from "./components/ThemeManager";
 import { Dashboard } from "./components/Dashboard";
 import { LoginPage } from "./components/LoginPage";
 import { FileSelector } from "./components/FileSelector";
+import SystemManagement from "./components/SystemManagement";
 import { Toaster } from "./components/ui/sonner";
 import { useAuth } from "./hooks/useAuth";
 
@@ -34,6 +35,11 @@ export default function App() {
         return <LogViewer />;
       case "theme":
         return <ThemeManager />;
+      case "admin":
+        return <SystemManagement onLogout={() => {
+          logout();
+          setSelectedFilePath(null);
+        }} />;
       default:
         return <Dashboard filePath={selectedFilePath} onNavigateToLogs={() => setActiveSection("logs")} />;
     }

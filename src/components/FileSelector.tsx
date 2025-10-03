@@ -47,21 +47,21 @@ export function FileSelector({ onFileSelect, onLogout }: FileSelectorProps) {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>选择文件路径</CardTitle>
-            <CardDescription>
-              请选择一个文件作为 WebUI 的配置文件，所有配置和数据将保存在该文件所在的目录中
-            </CardDescription>
-          </CardHeader>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/10 p-4">
+          <div className="w-full max-w-md space-y-4">
+            <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>选择机器人目录</CardTitle>
+                <CardDescription>
+                  请选择 MoFox Bot 的主目录。应用将从该目录读取配置文件。
+                </CardDescription>
+              </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input
                 value={filePath}
                 onChange={(e) => setFilePath(e.target.value)}
-                placeholder="请选择或输入配置文件路径"
+                placeholder="请选择或输入机器人主目录路径"
                 className="flex-1"
               />
               <Button variant="outline" size="icon" onClick={handleDirectoryBrowse}>
@@ -82,7 +82,7 @@ export function FileSelector({ onFileSelect, onLogout }: FileSelectorProps) {
               onClick={handleFileSelect}
               disabled={!filePath}
             >
-              确认选择
+              使用此目录
             </Button>
             <Button
               variant="outline"

@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { PowerPredictionChart } from "./PowerPredictionChart"; // 导入新组件
+import { Bot, Power } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
-import { 
-  Activity, 
+import {
+  Activity,
   Users,
   MessageCircle,
   Brain,
@@ -32,6 +34,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState({
     totalUsers: 1247,
     activeUsers: 89,
@@ -125,31 +128,8 @@ export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
       setBotUptime("未选择路径");
       return;
     }
-  
-    // 定义一个异步函数来获取bot运行时间
-    const fetchBotUptime = async () => {
-      try {
-        const directory = filePath;
-        const scriptName = 'main.py';
-        // @ts-ignore
-        const uptime = await window.electron.getProcessUptime('python', scriptName, directory);
-        setBotUptime(uptime);
-      } catch (error) {
-        console.error("获取bot运行时间失败:", error);
-        setBotUptime("获取失败");
-      }
-    };
-  
-    // 立即调用一次以获取初始状态
-    fetchBotUptime();
-  
-    // 设置定时器，每20秒调用一次
-    const uptimeInterval = setInterval(fetchBotUptime, 20000);
-  
-    // 组件卸载时清除定时器
-    return () => {
-      clearInterval(uptimeInterval);
-    };
+    // Electron-specific features are removed for web version.
+    setBotUptime("N/A in web version");
   }, [filePath]);
 
   const getLevelColor = (level: LogEntry["level"]) => {
@@ -172,18 +152,56 @@ export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
     }
   };
 
+  const handleRestartWebUIClick = async () => {
+    toast.info("正在重新加载页面...");
+    window.location.reload();
+  };
+
+  const handleRestartBotClick = async () => {
+    toast.error("此功能在网页版中不可用。");
+  };
+
   // 快速操作处理函数
   const handleQuickAction = (action: string) => {
     switch (action) {
       case "restart":
-        toast.success("正在重启服务...", {
-          description: "服务将在30秒内重新启动"
-        });
+        toast.info(
+          <>
+            重启 <strong className="italic">WebUI</strong> 服务
+          </>,
+          {
+            description: "点击按钮以重启 WebUI 界面。",
+            action: (
+              <Button
+                size="sm"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={handleRestartWebUIClick}
+              >
+                <Power className="h-4 w-4 mr-1" /> 重启
+              </Button>
+            ),
+          }
+        );
+        toast.info(
+          <>
+            重启 <strong className="italic">MoFox-bot</strong> 服务
+          </>,
+          {
+            description: "点击按钮以重启机器人核心服务。",
+            action: (
+              <Button
+                size="sm"
+                className="bg-sky-500 hover:bg-sky-600 text-white"
+                onClick={handleRestartBotClick}
+              >
+                <Bot className="h-4 w-4 mr-1" /> 重启
+              </Button>
+            ),
+          }
+        );
         break;
       case "performance":
-        toast.info("性能分析功能", {
-          description: "此功能正在开发中，敬请期待"
-        });
+        chartRef.current?.scrollIntoView({ behavior: "smooth" });
         break;
       case "users":
         toast.info("用户管理功能", {
@@ -212,7 +230,7 @@ export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
       {/* 欢迎区域 */}
       <div className="flex items-center justify-between">
         <div>
-          <h2>控制台概览</h2>
+          <h2 className="text-2xl font-bold tracking-tight">控制台概览</h2>
           <p className="text-muted-foreground">
             监控MoFox Bot的运行状态和关键指标
           </p>
@@ -452,6 +470,11 @@ export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* 功耗预测图表 */}
+      <div ref={chartRef}>
+        <PowerPredictionChart />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,6 @@
-import { Settings, Terminal, Palette, Bot, LayoutDashboard, LogOut, User } from "lucide-react";
+import React from "react";
+import { toast } from "sonner";
+import { Settings, Terminal, Palette, Bot, LayoutDashboard, LogOut, User, Power } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -68,6 +70,52 @@ const navigationItems = [
 ];
 
 export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: AppSidebarProps) {
+  const handleRestartWebUIClick = async () => {
+    toast.info("正在重新加载页面...");
+    window.location.reload();
+  };
+
+  const handleRestartBotClick = async () => {
+    toast.error("此功能在网页版中不可用。");
+  };
+
+  const showRestartToast = () => {
+    toast.info(
+      <>
+        重启 <strong className="italic">WebUI</strong> 服务
+      </>,
+      {
+        description: "点击按钮以重启 WebUI 界面。",
+        action: (
+          <Button
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+            onClick={handleRestartWebUIClick}
+          >
+            <Power className="h-4 w-4 mr-1" /> 重启
+          </Button>
+        ),
+      }
+    );
+    toast.info(
+      <>
+        重启 <strong className="italic">MoFox-bot</strong> 服务
+      </>,
+      {
+        description: "点击按钮以重启机器人核心服务。",
+        action: (
+          <Button
+            size="sm"
+            className="bg-sky-500 hover:bg-sky-600 text-white"
+            onClick={handleRestartBotClick}
+          >
+            <Bot className="h-4 w-4 mr-1" /> 重启
+          </Button>
+        ),
+      }
+    );
+  };
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-10 py-8">
@@ -88,9 +136,9 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item, index) => (
-                <>
+                <React.Fragment key={item.id}>
                   {index > 0 && <Separator className="my-5" />}
-                  <SidebarMenuItem key={item.id}>
+                  <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={() => onSectionChange(item.id)}
                       isActive={activeSection === item.id}
@@ -105,7 +153,7 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                </>
+                </React.Fragment>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -134,6 +182,10 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
                 个人资料
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={showRestartToast}>
+                <Power className="mr-2 h-4 w-4" />
+                重启服务
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} className="text-red-600">

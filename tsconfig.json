@@ -5,6 +5,10 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -21,7 +25,7 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["react", "react-dom"]
   },
-  "include": ["src", "src/types/index.d.ts"],
+  "include": ["src"],
   "exclude": ["electron"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
