@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider } from "./components/ui/sidebar";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { AppSidebar } from "./components/AppSidebar";
@@ -7,17 +7,27 @@ import { LogViewer } from "./components/LogViewer";
 import { ThemeManager } from "./components/ThemeManager";
 import { Dashboard } from "./components/Dashboard";
 import { LoginPage } from "./components/LoginPage";
+import { FileSelector } from "./components/FileSelector";
 import { Toaster } from "./components/ui/sonner";
 import { useAuth } from "./hooks/useAuth";
 
 export default function App() {
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(() => localStorage.getItem("selectedFilePath"));
   const { isAuthenticated, user, isLoading, login, logout } = useAuth();
+
+  useEffect(() => {
+    if (selectedFilePath) {
+      localStorage.setItem("selectedFilePath", selectedFilePath);
+    } else {
+      localStorage.removeItem("selectedFilePath");
+    }
+  }, [selectedFilePath]);
 
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigateToLogs={() => setActiveSection("logs")} />;
+        return <Dashboard filePath={selectedFilePath} onNavigateToLogs={() => setActiveSection("logs")} />;
       case "config":
         return <ConfigurationManager />;
       case "logs":
@@ -25,7 +35,7 @@ export default function App() {
       case "theme":
         return <ThemeManager />;
       default:
-        return <Dashboard onNavigateToLogs={() => setActiveSection("logs")} />;
+        return <Dashboard filePath={selectedFilePath} onNavigateToLogs={() => setActiveSection("logs")} />;
     }
   };
 
@@ -76,6 +86,15 @@ export default function App() {
     return <LoginPage onLogin={login} />;
   }
 
+  // 如果已登录但未选择文件，显示文件选择界面
+  const handleFileSelected = (path: string) => {
+    setSelectedFilePath(path);
+  };
+
+  if (!selectedFilePath) {
+    return <FileSelector onFileSelect={handleFileSelected} onLogout={logout} />;
+  }
+
   // 登录后显示主界面
   return (
     <TooltipProvider>
@@ -85,7 +104,10 @@ export default function App() {
             activeSection={activeSection} 
             onSectionChange={setActiveSection}
             user={user || undefined}
-            onLogout={logout}
+            onLogout={() => {
+              logout();
+              setSelectedFilePath(null);
+            }}
           />
           <main className="flex-1 flex flex-col">
             <header className="border-b bg-card px-6 py-4 shadow-sm">

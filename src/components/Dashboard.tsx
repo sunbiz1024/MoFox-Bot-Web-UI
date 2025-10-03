@@ -6,9 +6,9 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
 import { 
   Activity, 
-  Users, 
-  MessageCircle, 
-  Brain, 
+  Users,
+  MessageCircle,
+  Brain,
   Server,
   TrendingUp,
   Clock,
@@ -16,7 +16,7 @@ import {
   CheckCircle,
   ExternalLink
 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface LogEntry {
   id: string;
@@ -27,10 +27,11 @@ interface LogEntry {
 }
 
 interface DashboardProps {
+  filePath: string | null;
   onNavigateToLogs: () => void;
 }
 
-export function Dashboard({ onNavigateToLogs }: DashboardProps) {
+export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
   const [stats, setStats] = useState({
     totalUsers: 1247,
     activeUsers: 89,
@@ -80,6 +81,8 @@ export function Dashboard({ onNavigateToLogs }: DashboardProps) {
     }
   ]);
 
+  const [botUptime, setBotUptime] = useState("未知");
+
   // 模拟实时数据更新
   useEffect(() => {
     const interval = setInterval(() => {
@@ -97,7 +100,7 @@ export function Dashboard({ onNavigateToLogs }: DashboardProps) {
       const levels: LogEntry["level"][] = ["DEBUG", "INFO", "WARN"];
       const messages = [
         "处理用户消息",
-        "AI模型调用完成", 
+        "AI模型调用完成",
         "数据库查询成功",
         "内存清理完成",
         "系统运行正常"
@@ -116,6 +119,38 @@ export function Dashboard({ onNavigateToLogs }: DashboardProps) {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!filePath) {
+      setBotUptime("未选择路径");
+      return;
+    }
+  
+    // 定义一个异步函数来获取bot运行时间
+    const fetchBotUptime = async () => {
+      try {
+        const directory = filePath;
+        const scriptName = 'main.py';
+        // @ts-ignore
+        const uptime = await window.electron.getProcessUptime('python', scriptName, directory);
+        setBotUptime(uptime);
+      } catch (error) {
+        console.error("获取bot运行时间失败:", error);
+        setBotUptime("获取失败");
+      }
+    };
+  
+    // 立即调用一次以获取初始状态
+    fetchBotUptime();
+  
+    // 设置定时器，每20秒调用一次
+    const uptimeInterval = setInterval(fetchBotUptime, 20000);
+  
+    // 组件卸载时清除定时器
+    return () => {
+      clearInterval(uptimeInterval);
+    };
+  }, [filePath]);
 
   const getLevelColor = (level: LogEntry["level"]) => {
     switch (level) {
@@ -260,9 +295,9 @@ export function Dashboard({ onNavigateToLogs }: DashboardProps) {
                 <span>内存使用率</span>
                 <span>{stats.memoryUsage}%</span>
               </div>
-              <Progress 
-                value={stats.memoryUsage} 
-                className="h-2 cursor-pointer" 
+              <Progress
+                value={stats.memoryUsage}
+                className="h-2 cursor-pointer"
                 onClick={() => toast.info("内存详情", { description: `当前内存使用率: ${stats.memoryUsage}%` })}
               />
             </div>
@@ -272,9 +307,9 @@ export function Dashboard({ onNavigateToLogs }: DashboardProps) {
                 <span>CPU使用率</span>
                 <span>{stats.cpuUsage}%</span>
               </div>
-              <Progress 
-                value={stats.cpuUsage} 
-                className="h-2 cursor-pointer" 
+              <Progress
+                value={stats.cpuUsage}
+                className="h-2 cursor-pointer"
                 onClick={() => toast.info("CPU详情", { description: `当前CPU使用率: ${stats.cpuUsage}%` })}
               />
             </div>
@@ -284,22 +319,31 @@ export function Dashboard({ onNavigateToLogs }: DashboardProps) {
                 <span>磁盘使用率</span>
                 <span>{stats.diskUsage}%</span>
               </div>
-              <Progress 
-                value={stats.diskUsage} 
-                className="h-2 cursor-pointer" 
+              <Progress
+                value={stats.diskUsage}
+                className="h-2 cursor-pointer"
                 onClick={() => toast.info("磁盘详情", { description: `当前磁盘使用率: ${stats.diskUsage}%` })}
               />
             </div>
 
             <div className="pt-2 border-t">
-              <div 
+              <div
                 className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                onClick={() => toast.info("系统运行时间", { 
-                  description: `系统已持续运行 ${stats.systemUptime}，运行状态良好` 
+                onClick={() => toast.info("系统运行时间", {
+                  description: `系统已持续运行 ${stats.systemUptime}，运行状态良好`
                 })}
               >
                 <Clock className="h-4 w-4" />
-                <span>运行时间: {stats.systemUptime}</span>
+                <span>系统运行: {stats.systemUptime}</span>
+              </div>
+              <div
+                className="mt-2 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => toast.info("Bot运行时间", {
+                  description: `Bot脚本运行时间: ${botUptime}`
+                })}
+              >
+                <Brain className="h-4 w-4" />
+                <span>Bot运行: {botUptime}</span>
               </div>
             </div>
           </CardContent>
