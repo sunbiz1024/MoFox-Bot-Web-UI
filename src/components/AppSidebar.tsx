@@ -12,6 +12,7 @@ import {
   SidebarFooter,
 } from "./ui/sidebar";
 import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -57,16 +58,22 @@ const navigationItems = [
     title: "主题设置",
     icon: Palette,
     description: "界面主题配置"
+  },
+  {
+    id: "admin",
+    title: "系统管理",
+    icon: User,
+    description: "系统管理与权限控制"
   }
 ];
 
 export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: AppSidebarProps) {
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
+      <SidebarHeader className="border-b px-10 py-8">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-            <Bot className="h-4 w-4 text-primary-foreground" />
+          <div className="h-16 w-16 bg-primary rounded-lg flex items-center justify-center">
+            <Bot className="h-16 w-16 text-primary-foreground" />
           </div>
           <div>
             <h2 className="text-sm font-medium">MoFox Bot</h2>
@@ -80,22 +87,25 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
           <SidebarGroupLabel>管理功能</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onSectionChange(item.id)}
-                    isActive={activeSection === item.id}
-                    className="w-full justify-start"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <div className="flex flex-col items-start">
-                      <span>{item.title}</span>
-                      <span className="text-xs text-muted-foreground font-normal">
-                        {item.description}
-                      </span>
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {navigationItems.map((item, index) => (
+                <>
+                  {index > 0 && <Separator className="my-5" />}
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onSectionChange(item.id)}
+                      isActive={activeSection === item.id}
+                      className="w-full justify-start"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <div className="flex flex-col items-start">
+                        <span>{item.title}</span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          {item.description}
+                        </span>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -103,11 +113,11 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
       </SidebarContent>
 
       {user && (
-        <SidebarFooter className="border-t p-4">
+        <SidebarFooter className="border-t p-8">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-3">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-16 w-16">
                   <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                     {user.displayName.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -118,7 +128,7 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel>我的账户</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>

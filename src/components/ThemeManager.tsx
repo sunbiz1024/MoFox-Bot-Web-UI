@@ -3,32 +3,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Slider } from "./ui/slider";
 import { Switch } from "./ui/switch";
 import { Badge } from "./ui/badge";
 import { Palette, Sun, Moon, Monitor, Eye, Sparkles } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
+import { cn } from "../lib/utils";
+
+type ThemeMode = "light" | "dark" | "auto";
+type CustomColors = {
+  primary: string;
+  secondary: string;
+  accent: string;
+};
+type Effects = {
+  animations: boolean;
+  shadows: boolean;
+  blur: boolean;
+};
+type Accessibility = {
+  highContrast: boolean;
+  reducedMotion: boolean;
+  fontSize: number;
+};
 
 interface ThemeConfig {
-  mode: "light" | "dark" | "auto";
+  mode: ThemeMode;
   preset: string;
-  customColors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
-  effects: {
-    animations: boolean;
-    shadows: boolean;
-    blur: boolean;
-  };
-  accessibility: {
-    highContrast: boolean;
-    reducedMotion: boolean;
-    fontSize: number;
-  };
+  customColors: CustomColors;
+  effects: Effects;
+  accessibility: Accessibility;
 }
+
+const defaultConfig: ThemeConfig = {
+  mode: "light",
+  preset: "default",
+  customColors: {
+    primary: "#030213",
+    secondary: "#ececf0",
+    accent: "#e9ebef"
+  },
+  effects: {
+    animations: true,
+    shadows: true,
+    blur: true
+  },
+  accessibility: {
+    highContrast: false,
+    reducedMotion: false,
+    fontSize: 16
+  }
+};
 
 const presetThemes = [
   {
@@ -94,37 +119,15 @@ const presetThemes = [
 ];
 
 export function ThemeManager() {
-  const [config, setConfig] = useState<ThemeConfig>({
-    mode: "light",
-    preset: "default",
-    customColors: {
-      primary: "#030213",
-      secondary: "#ececf0",
-      accent: "#e9ebef"
-    },
-    effects: {
-      animations: true,
-      shadows: true,
-      blur: true
-    },
-    accessibility: {
-      highContrast: false,
-      reducedMotion: false,
-      fontSize: 16
-    }
-  });
+  const [config, setConfig] = useState<ThemeConfig>(defaultConfig);
 
-  // 应用主题到页面
   useEffect(() => {
     const root = document.documentElement;
-    
-    // 应用颜色模式
     if (config.mode === "dark") {
       root.classList.add("dark");
     } else if (config.mode === "light") {
       root.classList.remove("dark");
     } else {
-      // auto mode - 跟随系统
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       if (mediaQuery.matches) {
         root.classList.add("dark");
@@ -133,12 +136,10 @@ export function ThemeManager() {
       }
     }
 
-    // 应用自定义颜色（包括预设主题的颜色）
     root.style.setProperty("--primary", config.customColors.primary);
     root.style.setProperty("--secondary", config.customColors.secondary);
     root.style.setProperty("--accent", config.customColors.accent);
 
-    // 应用可访问性设置
     root.style.fontSize = `${config.accessibility.fontSize}px`;
     
     if (config.accessibility.reducedMotion) {
@@ -147,7 +148,6 @@ export function ThemeManager() {
       root.style.removeProperty("--animation-duration");
     }
 
-    // 应用视觉效果
     if (!config.effects.animations) {
       root.style.setProperty("--animation-duration", "0s");
       root.style.setProperty("--transition-duration", "0s");
@@ -155,24 +155,27 @@ export function ThemeManager() {
       root.style.removeProperty("--animation-duration");
       root.style.removeProperty("--transition-duration");
     }
-
   }, [config]);
 
-  const updateConfig = (key: string, value: any) => {
-    setConfig(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const updateConfig = (key: keyof ThemeConfig, value: any) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
   };
 
-  const updateNestedConfig = (section: keyof ThemeConfig, key: string, value: any) => {
-    setConfig(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [key]: value
-      }
-    }));
+  const updateNestedConfig = (
+    section: keyof ThemeConfig,
+    key: string,
+    value: boolean | string | number
+  ) => {
+    setConfig(prev => {
+      const sectionData = prev[section] as Record<string, any>;
+      return {
+        ...prev,
+        [section]: {
+          ...sectionData,
+          [key]: value
+        }
+      };
+    });
   };
 
   const applyPreset = (presetId: string) => {
@@ -188,36 +191,19 @@ export function ThemeManager() {
   };
 
   const resetToDefault = () => {
-    setConfig({
-      mode: "light",
-      preset: "default",
-      customColors: {
-        primary: "#030213",
-        secondary: "#ececf0",
-        accent: "#e9ebef"
-      },
-      effects: {
-        animations: true,
-        shadows: true,
-        blur: true
-      },
-      accessibility: {
-        highContrast: false,
-        reducedMotion: false,
-        fontSize: 16
-      }
-    });
+    setConfig(defaultConfig);
     toast.success("已重置为默认主题");
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* 头部标题 */}
+      <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Palette className="h-5 w-5" />
           <div>
-            <h2>主题设置</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-lg font-semibold">主题设置</h2>
+            <p className="text-sm text-muted-foreground">
               自定义界面外观和配色方案
             </p>
           </div>
@@ -225,7 +211,7 @@ export function ThemeManager() {
         <Button variant="outline" onClick={resetToDefault}>
           重置为默认
         </Button>
-      </div>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 显示模式 */}
@@ -287,7 +273,7 @@ export function ThemeManager() {
               </div>
               <Switch
                 checked={config.effects.animations}
-                onCheckedChange={(checked) => updateNestedConfig("effects", "animations", checked)}
+                onCheckedChange={(checked: boolean) => updateNestedConfig("effects", "animations", checked)}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -297,7 +283,7 @@ export function ThemeManager() {
               </div>
               <Switch
                 checked={config.effects.shadows}
-                onCheckedChange={(checked) => updateNestedConfig("effects", "shadows", checked)}
+                onCheckedChange={(checked: boolean) => updateNestedConfig("effects", "shadows", checked)}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -307,7 +293,7 @@ export function ThemeManager() {
               </div>
               <Switch
                 checked={config.effects.blur}
-                onCheckedChange={(checked) => updateNestedConfig("effects", "blur", checked)}
+                onCheckedChange={(checked: boolean) => updateNestedConfig("effects", "blur", checked)}
               />
             </div>
           </CardContent>
@@ -325,11 +311,12 @@ export function ThemeManager() {
             {presetThemes.map((theme) => (
               <div
                 key={theme.id}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
+                className={cn(
+                  "p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md",
                   config.preset === theme.id 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border hover:border-primary/50'
-                }`}
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-primary/50"
+                )}
                 onClick={() => applyPreset(theme.id)}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -472,7 +459,7 @@ export function ThemeManager() {
             </div>
             <Switch
               checked={config.accessibility.highContrast}
-              onCheckedChange={(checked) => updateNestedConfig("accessibility", "highContrast", checked)}
+              onCheckedChange={(checked: boolean) => updateNestedConfig("accessibility", "highContrast", checked)}
             />
           </div>
           
@@ -483,7 +470,7 @@ export function ThemeManager() {
             </div>
             <Switch
               checked={config.accessibility.reducedMotion}
-              onCheckedChange={(checked) => updateNestedConfig("accessibility", "reducedMotion", checked)}
+              onCheckedChange={(checked: boolean) => updateNestedConfig("accessibility", "reducedMotion", checked)}
             />
           </div>
 
@@ -496,7 +483,7 @@ export function ThemeManager() {
             </div>
             <Slider
               value={[config.accessibility.fontSize]}
-              onValueChange={(value) => updateNestedConfig("accessibility", "fontSize", value[0])}
+              onValueChange={(value: number[]) => updateNestedConfig("accessibility", "fontSize", value[0])}
               min={12}
               max={24}
               step={1}

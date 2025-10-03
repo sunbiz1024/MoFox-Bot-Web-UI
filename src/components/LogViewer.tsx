@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 interface LogEntry {
+  [x: string]: string;
   id: string;
   timestamp: string;
   level: "DEBUG" | "INFO" | "WARN" | "ERROR";

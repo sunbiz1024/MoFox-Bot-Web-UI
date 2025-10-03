@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu@2.1.6";
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react@0.487.0";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
 
 import { cn } from "./utils";
 
@@ -179,7 +179,7 @@ function DropdownMenuSeparator({
 function DropdownMenuShortcut({
   className,
   ...props
-}: React.ComponentProps<"span">) {
+}: React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
       data-slot="dropdown-menu-shortcut"
