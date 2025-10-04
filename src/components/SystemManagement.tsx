@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,66 +9,29 @@ import { LogOut } from 'lucide-react';
 
 interface SystemManagementProps {
   onLogout?: () => void;
+  sharedUserId: string;
+  setSharedUserId: (id: string) => void;
+  platform: string;
+  setPlatform: (platform: string) => void;
+  masterUsers: [string, string][];
+  configPath: string;
+  handleAddUser: () => void;
+  handleRemoveUser: (index: number) => void;
+  handleSave: () => void;
 }
 
-const SystemManagement: React.FC<SystemManagementProps> = ({ onLogout }) => {
-  const [platform, setPlatform] = useState('qq');
-  const [userId, setUserId] = useState('');
-  const [masterUsers, setMasterUsers] = useState<[string, string][]>([]);
-  const [configPath, setConfigPath] = useState('');
-
-  useEffect(() => {
-    // In a real app, you'd fetch the config path and master users from a backend or file
-    // For now, we'll use a placeholder path and parse a hardcoded string
-    const hardcodedConfig = `master_users=[['qq','1234567890']]`;
-    const match = hardcodedConfig.match(/master_users=\[(.+)\]/);
-    if (match && match[1]) {
-      try {
-        const users = JSON.parse(`[[${match[1]}]]`);
-        setMasterUsers(users);
-      } catch (e) {
-        console.error("Error parsing master_users", e);
-        // Handle cases with malformed arrays, e.g., [['qq','1234567890'],['qq','234567801']]
-        // This is a simplified parser for the example format.
-        const userStrings = match[1].replace(/'/g, '"').slice(1,-1).split('],[');
-        const parsedUsers = userStrings.map(s => JSON.parse(`[${s}]`));
-        setMasterUsers(parsedUsers);
-
-      }
-    }
-     // Assuming the file selector logic provides the path to the bot config
-     // For now, let's hardcode the path you mentioned.
-     setConfigPath('./bot/config/bot_config.toml');
-  }, []);
-
-  const handleAddUser = () => {
-    if (userId) {
-      setMasterUsers([...masterUsers, [platform, userId]]);
-      setUserId('');
-    }
-  };
-
-  const handleRemoveUser = (index: number) => {
-    const newUsers = [...masterUsers];
-    newUsers.splice(index, 1);
-    setMasterUsers(newUsers);
-  };
-
-  const handleSave = async () => {
-    try {
-        const usersString = masterUsers.map(user => `['${user[0]}','${user[1]}']`).join(',');
-        const newConfigContent = `master_users=[${usersString}]`;
-
-        // In a real Electron app, you would use ipcRenderer to send this to the main process
-        // For example: window.electron.saveBotConfig(configPath, newConfigContent);
-        console.log(`Saving to ${configPath}: ${newConfigContent}`);
-        alert('配置已保存！ (模拟)');
-
-    } catch (error) {
-        console.error('Failed to save master users:', error);
-        alert('保存失败！');
-    }
-  };
+const SystemManagement: React.FC<SystemManagementProps> = ({
+  onLogout,
+  sharedUserId,
+  setSharedUserId,
+  platform,
+  setPlatform,
+  masterUsers,
+  configPath,
+  handleAddUser,
+  handleRemoveUser,
+  handleSave,
+}) => {
 
 
   return (
@@ -105,8 +68,8 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ onLogout }) => {
                     <Label htmlFor="user-id">用户ID</Label>
                     <Input
                         id="user-id"
-                        value={userId}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserId(e.target.value)}
+                        value={sharedUserId}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSharedUserId(e.target.value)}
                         placeholder="请输入用户ID"
                     />
                 </div>

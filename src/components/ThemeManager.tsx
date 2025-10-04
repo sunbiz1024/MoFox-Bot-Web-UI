@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
+import { SketchPicker, ColorResult } from "react-color";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
@@ -27,7 +29,7 @@ type Accessibility = {
   fontSize: number;
 };
 
-interface ThemeConfig {
+export interface ThemeConfig {
   mode: ThemeMode;
   preset: string;
   customColors: CustomColors;
@@ -35,14 +37,22 @@ interface ThemeConfig {
   accessibility: Accessibility;
 }
 
-const defaultConfig: ThemeConfig = {
+export const DEFAULT_THEME_COLORS_LIGHT = {
+  primary: "#030213",
+  secondary: "#ececf0",
+  accent: "#e9ebef",
+};
+
+export const DEFAULT_THEME_COLORS_DARK = {
+  primary: "#E5E7EB",
+  secondary: "#1F2937",
+  accent: "#374151",
+};
+
+export const defaultConfig: ThemeConfig = {
   mode: "light",
   preset: "default",
-  customColors: {
-    primary: "#030213",
-    secondary: "#ececf0",
-    accent: "#e9ebef"
-  },
+  customColors: DEFAULT_THEME_COLORS_LIGHT,
   effects: {
     animations: true,
     shadows: true,
@@ -60,11 +70,7 @@ const presetThemes = [
     id: "default",
     name: "默认主题",
     description: "经典的蓝色配色方案",
-    colors: {
-      primary: "#030213",
-      secondary: "#ececf0",
-      accent: "#e9ebef"
-    }
+    colors: DEFAULT_THEME_COLORS_LIGHT,
   },
   {
     id: "ocean",
@@ -118,47 +124,24 @@ const presetThemes = [
   }
 ];
 
-export function ThemeManager() {
-  const [config, setConfig] = useState<ThemeConfig>(defaultConfig);
+interface ThemeManagerProps {
+  config: ThemeConfig;
+  setConfig: Dispatch<SetStateAction<ThemeConfig>>;
+}
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (config.mode === "dark") {
-      root.classList.add("dark");
-    } else if (config.mode === "light") {
-      root.classList.remove("dark");
-    } else {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      if (mediaQuery.matches) {
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
-      }
-    }
-
-    root.style.setProperty("--primary", config.customColors.primary);
-    root.style.setProperty("--secondary", config.customColors.secondary);
-    root.style.setProperty("--accent", config.customColors.accent);
-
-    root.style.fontSize = `${config.accessibility.fontSize}px`;
-    
-    if (config.accessibility.reducedMotion) {
-      root.style.setProperty("--animation-duration", "0s");
-    } else {
-      root.style.removeProperty("--animation-duration");
-    }
-
-    if (!config.effects.animations) {
-      root.style.setProperty("--animation-duration", "0s");
-      root.style.setProperty("--transition-duration", "0s");
-    } else {
-      root.style.removeProperty("--animation-duration");
-      root.style.removeProperty("--transition-duration");
-    }
-  }, [config]);
+export function ThemeManager({ config, setConfig }: ThemeManagerProps) {
+  const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
 
   const updateConfig = (key: keyof ThemeConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+    setConfig(prev => {
+      const newConfig = { ...prev, [key]: value };
+      if (key === 'mode' && newConfig.preset === 'default') {
+        newConfig.customColors = value === 'dark'
+          ? DEFAULT_THEME_COLORS_DARK
+          : DEFAULT_THEME_COLORS_LIGHT;
+      }
+      return newConfig;
+    });
   };
 
   const updateNestedConfig = (
@@ -168,23 +151,31 @@ export function ThemeManager() {
   ) => {
     setConfig(prev => {
       const sectionData = prev[section] as Record<string, any>;
-      return {
+      const newConfig = {
         ...prev,
         [section]: {
           ...sectionData,
           [key]: value
         }
       };
+      if (section === 'customColors') {
+        newConfig.preset = 'custom';
+      }
+      return newConfig;
     });
   };
 
   const applyPreset = (presetId: string) => {
     const preset = presetThemes.find(t => t.id === presetId);
     if (preset) {
+      let newColors = preset.colors;
+      if (preset.id === 'default' && config.mode === 'dark') {
+        newColors = DEFAULT_THEME_COLORS_DARK;
+      }
       setConfig(prev => ({
         ...prev,
         preset: presetId,
-        customColors: preset.colors
+        customColors: newColors
       }));
       toast.success(`已应用 ${preset.name} 主题`);
     }
@@ -356,62 +347,30 @@ export function ThemeManager() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="primary-color">主色调</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="primary-color"
-                  type="color"
-                  value={config.customColors.primary}
-                  onChange={(e) => updateNestedConfig("customColors", "primary", e.target.value)}
-                  className="w-12 h-10 border border-input rounded-md cursor-pointer"
-                />
-                <Input
-                  value={config.customColors.primary}
-                  onChange={(e) => updateNestedConfig("customColors", "primary", e.target.value)}
-                  placeholder="#030213"
-                  className="flex-1 font-mono"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="secondary-color">次要色调</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="secondary-color"
-                  type="color"
-                  value={config.customColors.secondary}
-                  onChange={(e) => updateNestedConfig("customColors", "secondary", e.target.value)}
-                  className="w-12 h-10 border border-input rounded-md cursor-pointer"
-                />
-                <Input
-                  value={config.customColors.secondary}
-                  onChange={(e) => updateNestedConfig("customColors", "secondary", e.target.value)}
-                  placeholder="#ececf0"
-                  className="flex-1 font-mono"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="accent-color">强调色</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="accent-color"
-                  type="color"
-                  value={config.customColors.accent}
-                  onChange={(e) => updateNestedConfig("customColors", "accent", e.target.value)}
-                  className="w-12 h-10 border border-input rounded-md cursor-pointer"
-                />
-                <Input
-                  value={config.customColors.accent}
-                  onChange={(e) => updateNestedConfig("customColors", "accent", e.target.value)}
-                  placeholder="#e9ebef"
-                  className="flex-1 font-mono"
-                />
-              </div>
-            </div>
+            <ColorPickerInput
+              label="主色调"
+              color={config.customColors.primary}
+              onChange={(color) => updateNestedConfig("customColors", "primary", color)}
+              pickerId="primary"
+              activePicker={activeColorPicker}
+              setActivePicker={setActiveColorPicker}
+            />
+            <ColorPickerInput
+              label="次要色调"
+              color={config.customColors.secondary}
+              onChange={(color) => updateNestedConfig("customColors", "secondary", color)}
+              pickerId="secondary"
+              activePicker={activeColorPicker}
+              setActivePicker={setActiveColorPicker}
+            />
+            <ColorPickerInput
+              label="强调色"
+              color={config.customColors.accent}
+              onChange={(color) => updateNestedConfig("customColors", "accent", color)}
+              pickerId="accent"
+              activePicker={activeColorPicker}
+              setActivePicker={setActiveColorPicker}
+            />
           </div>
           
           <div className="pt-4 border-t">
@@ -497,6 +456,57 @@ export function ThemeManager() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+interface ColorPickerInputProps {
+  label: string;
+  color: string;
+  onChange: (color: string) => void;
+  pickerId: string;
+  activePicker: string | null;
+  setActivePicker: (id: string | null) => void;
+}
+
+function ColorPickerInput({
+  label,
+  color,
+  onChange,
+  pickerId,
+  activePicker,
+  setActivePicker
+}: ColorPickerInputProps) {
+  const handleColorChange = (colorResult: ColorResult) => {
+    onChange(colorResult.hex);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Popover open={activePicker === pickerId} onOpenChange={(isOpen) => setActivePicker(isOpen ? pickerId : null)}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-12 h-10 p-0 border border-input rounded-md cursor-pointer"
+              style={{ backgroundColor: color }}
+            />
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <SketchPicker
+              color={color}
+              onChangeComplete={handleColorChange}
+            />
+          </PopoverContent>
+        </Popover>
+        <Input
+          value={color}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#000000"
+          className="flex-1 font-mono"
+        />
+      </div>
     </div>
   );
 }

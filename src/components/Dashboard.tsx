@@ -29,11 +29,11 @@ interface LogEntry {
 }
 
 interface DashboardProps {
-  filePath: string | null;
+  directoryName?: string | null;
   onNavigateToLogs: () => void;
 }
 
-export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
+export function Dashboard({ directoryName, onNavigateToLogs }: DashboardProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState({
     totalUsers: 1247,
@@ -124,13 +124,12 @@ export function Dashboard({ filePath, onNavigateToLogs }: DashboardProps) {
   }, []);
 
   useEffect(() => {
-    if (!filePath) {
-      setBotUptime("未选择路径");
-      return;
+    if (directoryName) {
+      setBotUptime("正在加载..."); // Placeholder, will be improved later
+    } else {
+      setBotUptime("未选择目录");
     }
-    // Electron-specific features are removed for web version.
-    setBotUptime("N/A in web version");
-  }, [filePath]);
+  }, [directoryName]);
 
   const getLevelColor = (level: LogEntry["level"]) => {
     switch (level) {

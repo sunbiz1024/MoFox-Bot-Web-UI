@@ -1,43 +1,36 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { Separator } from "../ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { DatabaseConfigType } from "./types";
+import { defaultConfig } from "./defaults";
 
-export function DatabaseConfig() {
-  const [databaseType, setDatabaseType] = useState("sqlite");
-  const [config, setConfig] = useState({
-    // SQLite 配置
-    sqlite_path: "./data/mofox.db",
-    
-    // MySQL 配置
-    mysql_host: "localhost",
-    mysql_port: 3306,
-    mysql_database: "mofox_bot",
-    mysql_user: "root",
-    mysql_password: "",
-    mysql_charset: "utf8mb4",
-    mysql_autocommit: true,
-    mysql_sql_mode: "STRICT_TRANS_TABLES",
-    
-    // 连接池配置
-    connection_pool_size: 10,
-    connection_timeout: 30,
-  });
+interface DatabaseConfigProps {
+  config: DatabaseConfigType;
+  updateConfig: (key: keyof DatabaseConfigType, value: any) => void;
+}
 
-  const updateConfig = (key: string, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
-  };
+export function DatabaseConfig({ config, updateConfig }: DatabaseConfigProps) {
+  const safeConfig = { ...defaultConfig.database, ...(config || {}) };
+
+  useEffect(() => {
+    if (safeConfig.database_type === "sqlite" && safeConfig.sqlite_path !== "./bot/data/MaiBot.db") {
+      updateConfig("sqlite_path", "./bot/data/MaiBot.db");
+    }
+  }, [safeConfig.database_type, safeConfig.sqlite_path, updateConfig]);
+
+  const displayPath = safeConfig.sqlite_path;
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="database-type">数据库类型</Label>
-          <Select value={databaseType} onValueChange={setDatabaseType}>
-            <SelectTrigger>
+          <Select value={safeConfig.database_type} onValueChange={(value) => updateConfig("database_type", value)}>
+            <SelectTrigger id="database-type">
               <SelectValue placeholder="选择数据库类型" />
             </SelectTrigger>
             <SelectContent>
@@ -47,7 +40,7 @@ export function DatabaseConfig() {
           </Select>
         </div>
 
-        {databaseType === "sqlite" && (
+        {safeConfig.database_type === "sqlite" && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">SQLite 配置</CardTitle>
@@ -58,16 +51,16 @@ export function DatabaseConfig() {
                 <Label htmlFor="sqlite-path">数据库文件路径</Label>
                 <Input
                   id="sqlite-path"
-                  value={config.sqlite_path}
-                  onChange={(e) => updateConfig("sqlite_path", e.target.value)}
-                  placeholder="./data/mofox.db"
+                  value={displayPath}
+                  readOnly
+                  placeholder="./bot/data/MaiBot.db"
                 />
               </div>
             </CardContent>
           </Card>
         )}
 
-        {databaseType === "mysql" && (
+        {safeConfig.database_type === "mysql" && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">MySQL 配置</CardTitle>
@@ -79,7 +72,7 @@ export function DatabaseConfig() {
                   <Label htmlFor="mysql-host">服务器地址</Label>
                   <Input
                     id="mysql-host"
-                    value={config.mysql_host}
+                    value={safeConfig.mysql_host}
                     onChange={(e) => updateConfig("mysql_host", e.target.value)}
                     placeholder="localhost"
                   />
@@ -89,7 +82,7 @@ export function DatabaseConfig() {
                   <Input
                     id="mysql-port"
                     type="number"
-                    value={config.mysql_port}
+                    value={safeConfig.mysql_port}
                     onChange={(e) => updateConfig("mysql_port", parseInt(e.target.value))}
                     placeholder="3306"
                   />
@@ -100,7 +93,7 @@ export function DatabaseConfig() {
                 <Label htmlFor="mysql-database">数据库名称</Label>
                 <Input
                   id="mysql-database"
-                  value={config.mysql_database}
+                  value={safeConfig.mysql_database}
                   onChange={(e) => updateConfig("mysql_database", e.target.value)}
                   placeholder="mofox_bot"
                 />
@@ -111,7 +104,7 @@ export function DatabaseConfig() {
                   <Label htmlFor="mysql-user">用户名</Label>
                   <Input
                     id="mysql-user"
-                    value={config.mysql_user}
+                    value={safeConfig.mysql_user}
                     onChange={(e) => updateConfig("mysql_user", e.target.value)}
                     placeholder="root"
                   />
@@ -121,7 +114,7 @@ export function DatabaseConfig() {
                   <Input
                     id="mysql-password"
                     type="password"
-                    value={config.mysql_password}
+                    value={safeConfig.mysql_password}
                     onChange={(e) => updateConfig("mysql_password", e.target.value)}
                     placeholder="请输入密码"
                   />
@@ -136,11 +129,11 @@ export function DatabaseConfig() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="mysql-charset">字符集</Label>
-                    <Select 
-                      value={config.mysql_charset} 
+                    <Select
+                      value={safeConfig.mysql_charset}
                       onValueChange={(value) => updateConfig("mysql_charset", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="mysql-charset">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -154,7 +147,7 @@ export function DatabaseConfig() {
                     <Label htmlFor="mysql-sql-mode">SQL 模式</Label>
                     <Input
                       id="mysql-sql-mode"
-                      value={config.mysql_sql_mode}
+                      value={safeConfig.mysql_sql_mode}
                       onChange={(e) => updateConfig("mysql_sql_mode", e.target.value)}
                       placeholder="STRICT_TRANS_TABLES"
                     />
@@ -163,13 +156,14 @@ export function DatabaseConfig() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>自动提交事务</Label>
+                    <Label htmlFor="auto-commit-switch">自动提交事务</Label>
                     <p className="text-sm text-muted-foreground">
                       是否自动提交数据库事务
                     </p>
                   </div>
                   <Switch
-                    checked={config.mysql_autocommit}
+                    id="auto-commit-switch"
+                    checked={safeConfig.mysql_autocommit}
                     onCheckedChange={(checked) => updateConfig("mysql_autocommit", checked)}
                   />
                 </div>
@@ -190,7 +184,7 @@ export function DatabaseConfig() {
                 <Input
                   id="pool-size"
                   type="number"
-                  value={config.connection_pool_size}
+                  value={safeConfig.connection_pool_size}
                   onChange={(e) => updateConfig("connection_pool_size", parseInt(e.target.value))}
                   placeholder="10"
                 />
@@ -200,7 +194,7 @@ export function DatabaseConfig() {
                 <Input
                   id="connection-timeout"
                   type="number"
-                  value={config.connection_timeout}
+                  value={safeConfig.connection_timeout}
                   onChange={(e) => updateConfig("connection_timeout", parseInt(e.target.value))}
                   placeholder="30"
                 />

@@ -1,25 +1,28 @@
-/// <reference types="vite/client" />
+interface FileSystemDirectoryHandle {
+  kind: 'directory';
+  name: string;
+  entries(): AsyncIterable<[string, FileSystemDirectoryHandle | FileSystemFileHandle]>;
+  getFileHandle(name: string, options?: { create?: boolean }): Promise<FileSystemFileHandle>;
+  getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<FileSystemDirectoryHandle>;
+  removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
+  resolve(possibleDescendant: FileSystemHandle): Promise<string[] | null>;
+}
 
-export {};
+interface FileSystemFileHandle {
+  kind: 'file';
+  name: string;
+  getFile(): Promise<File>;
+  createWritable(): Promise<FileSystemWritableFileStream>;
+}
 
-declare global {
-  interface Window {
-    electron: {
-      openDirectoryDialog: () => Promise<string>;
-      openFileDialog: () => Promise<string>;
-      saveLastDirectory: (path: string) => Promise<void>;
-      getLastDirectory: () => Promise<string>;
-      getProcessUptime: (processName: string, scriptName: string, directory: string) => Promise<string>;
-      restartWebUI: () => Promise<void>;
-      restartMofoxBot: (botDirectoryPath: string) => Promise<{ success: boolean; message: string }>;
-    };
-  }
+type FileSystemHandle = FileSystemFileHandle | FileSystemDirectoryHandle;
 
-  namespace React {
-    interface HTMLAttributes<T> extends React.AriaAttributes, React.DOMAttributes<T> {
-      webkitdirectory?: string;
-      mozdirectory?: string;
-      directory?: string;
-    }
-  }
+interface FileSystemWritableFileStream extends WritableStream {
+  write(data: any): Promise<void>;
+  seek(position: number): Promise<void>;
+  truncate(size: number): Promise<void>;
+}
+
+interface Window {
+  showDirectoryPicker(): Promise<FileSystemDirectoryHandle>;
 }

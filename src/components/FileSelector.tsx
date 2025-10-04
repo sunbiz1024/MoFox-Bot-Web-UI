@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -6,92 +6,66 @@ import { Folder, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 interface FileSelectorProps {
-  onFileSelect: (path: string) => void;
+  onFileSelect: (handle: FileSystemDirectoryHandle) => void;
   onLogout: () => void;
 }
 
 export function FileSelector({ onFileSelect, onLogout }: FileSelectorProps) {
-  const [filePath, setFilePath] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDirectoryHandle, setSelectedDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
 
-  // Load last selected directory from localStorage
-  useEffect(() => {
-    const lastDir = localStorage.getItem("lastDirectory");
-    if (lastDir) {
-      setFilePath(lastDir);
-    }
-  }, []);
-
-  const handleDirectoryBrowse = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const selectedPath = files[0].webkitRelativePath || files[0].name;
-      const directoryPath = selectedPath.substring(0, selectedPath.lastIndexOf('/'));
-      setFilePath(directoryPath);
-      localStorage.setItem("lastDirectory", directoryPath);
-      toast.success("已选择文件夹", {
-        description: directoryPath
-      });
+  const handleDirectoryBrowse = async () => {
+    if ('showDirectoryPicker' in window) {
+      try {
+        const directoryHandle = await window.showDirectoryPicker();
+        setSelectedDirectoryHandle(directoryHandle); // Store the handle, but don't proceed yet
+        toast.success("已选择文件夹", { description: directoryHandle.name });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          toast.info("已取消文件夹选择。");
+        } else {
+          console.error(error);
+          toast.error("选择文件夹时出错", { description: "请确保您的浏览器支持 File System Access API 并已授予权限。" });
+        }
+      }
+    } else {
+      toast.error("浏览器不支持此功能", { description: "请使用支持 File System Access API 的现代浏览器（如 Chrome 或 Edge）。" });
     }
   };
 
-  const handleFileSelect = () => {
-    if (filePath) {
-      localStorage.setItem("lastDirectory", filePath);
-      onFileSelect(filePath);
-    }
-  };
+  const handleConfirm = () => {
+      if (selectedDirectoryHandle) {
+          onFileSelect(selectedDirectoryHandle);
+      } else {
+          toast.warning("请先选择一个文件夹。");
+      }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/10 p-4">
-          <div className="w-full max-w-md space-y-4">
-            <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>选择机器人目录</CardTitle>
-                <CardDescription>
-                  请选择 MoFox Bot 的主目录。应用将从该目录读取配置文件。
-                </CardDescription>
-              </CardHeader>
+      <div className="w-full max-w-md space-y-4">
+        <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>选择机器人目录</CardTitle>
+            <CardDescription>
+              请选择 MoFox Bot 的主目录，然后点击“确定”进入控制台。
+            </CardDescription>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input
-                value={filePath}
-                onChange={(e) => setFilePath(e.target.value)}
-                placeholder="请选择或输入机器人主目录路径"
+                value={selectedDirectoryHandle?.name || ""}
+                placeholder="请点击右侧按钮选择目录"
                 className="flex-1"
+                readOnly
               />
               <Button variant="outline" size="icon" onClick={handleDirectoryBrowse}>
                 <Folder className="h-4 w-4" />
               </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                webkitdirectory="true"
-                mozdirectory="true"
-                directory="true"
-              />
             </div>
-            <Button
-              className="w-full"
-              onClick={handleFileSelect}
-              disabled={!filePath}
-            >
-              使用此目录
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex items-center gap-2"
-              onClick={onLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              返回登录界面
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={onLogout}>返回登录</Button>
+                <Button onClick={handleConfirm}>确定</Button>
+            </div>
           </CardContent>
         </Card>
       </div>

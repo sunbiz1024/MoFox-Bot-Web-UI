@@ -71,8 +71,8 @@ const navigationItems = [
 
 export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: AppSidebarProps) {
   const handleRestartWebUIClick = async () => {
-    toast.info("正在重新加载页面...");
-    window.location.reload();
+    toast.info("正在重启 WebUI...");
+    await window.electron.restartWebUI();
   };
 
   const handleRestartBotClick = async () => {
@@ -163,7 +163,7 @@ export function AppSidebar({ activeSection, onSectionChange, user, onLogout }: A
       {user && (
         <SidebarFooter className="border-t p-8">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger className="w-full">
               <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-3">
                 <Avatar className="h-16 w-16">
                   <AvatarFallback className="text-xs bg-primary text-primary-foreground">
